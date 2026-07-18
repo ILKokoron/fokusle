@@ -1,6 +1,6 @@
 // Client-side flex card renderer for Fokusle Lock-In Card.
 // Split layout: left = FOCUS SCORE dominant + stats, right = LOCKED IN + avatar + quote.
-// Purple theme. Pure canvas, returns PNG data URL.
+// Purple theme, Space Grotesk font (brand). Pure canvas, returns PNG data URL.
 
 export type CardBadge = { name: string; got: boolean };
 
@@ -13,11 +13,11 @@ export type FokusCardData = {
   xp: bigint;
   level: bigint;
   badges: CardBadge[];
-  avatarUrl?: string; // custom pfp (from gallery). falls back to dicebear(address)
+  avatarUrl?: string;
 };
 
 const W = 1200;
-const H = 630; // 1.9:1 split layout
+const H = 630;
 
 const fmt = (s: bigint) => {
   const sec = Number(s);
@@ -30,9 +30,7 @@ function defaultAvatar(wallet: string): string {
   return `https://api.dicebear.com/7.x/shapes/svg?seed=${wallet || "fokusle"}`;
 }
 
-// Quotes based on TOTAL focus hours. Lower = more self-deprecating,
-// higher = praising the user. Written as normal lowercase sentences,
-// wrapped in " ... " with trailing ....
+// English lowercase quotes, no emoji, no caps shouting. Dynamic by total hours.
 function pickQuote(totalSec: number, streakDays: number): string {
   const hrs = totalSec / 3600;
   const st = streakDays;
@@ -40,37 +38,37 @@ function pickQuote(totalSec: number, streakDays: number): string {
   let body = "";
   if (hrs < 1) {
     const opts = [
-      `baru lock in ${t}, mereka bilang gak bakal tahan, mereka benar tapi ya udah`,
-      `hari pertama grind. ${t} kecatat. detox dopamin mulai lagi (kemarin gagal)`,
-      `${t} fokus hari ini. disiplin beneran katanya (tolong cek aku masih waras)`,
+      `just locked in ${t}. they said i wouldn't last. they were right but i did it anyway`,
+      `day one of the grind. ${t} logged. dopamine detox started (failed yesterday)`,
+      `${t} of focus today. discipline is real they said (someone check if i'm okay)`,
     ];
     body = opts[Math.floor(Math.random() * opts.length)];
   } else if (hrs < 5) {
     const opts = [
-      `${t} di chain. streak ${st} hari. mereka scroll, aku naik level pelan-pelan`,
-      `total ${t} fokus. otakku hampir mesin sekarang, masih bocor dikit`,
-      `streak ${st} hari. ${t} tercatat. algoritma mulai takut kayaknya`,
+      `${t} on chain. streak ${st} days. they scroll, i level up slowly`,
+      `total ${t} focused. my brain is almost a machine now, still leaking a bit`,
+      `streak ${st} days. ${t} logged. the algorithm is starting to fear me`,
     ];
     body = opts[Math.floor(Math.random() * opts.length)];
   } else if (hrs < 20) {
     const opts = [
-      `${t} tercatat. streak ${st} hari. aku sudah jadi protokolnya. monad tahu`,
-      `disiplin agama. ${t} kupanjatkan. ${st} hari streak. amin`,
-      `${st} hari fokus murni. ${t}. mereka gak akan pernah dapet grind ini`,
+      `${t} logged. streak ${st} days. i have become the protocol. monad knows`,
+      `discipline is a religion. ${t} prayed. ${st} day streak. amen`,
+      `${st} days of pure focus. ${t}. they will never get the grind`,
     ];
     body = opts[Math.floor(Math.random() * opts.length)];
   } else if (hrs < 60) {
     const opts = [
-      `level legenda: ${t} fokus. ${st} hari streak. kau standarnya sekarang`,
-      `${t} disiplin. grind menghormati kau. terus bangun, king`,
-      `${st} hari streak. ${t} di chain. kau wujudnya fokus`,
+      `legend status: ${t} focused. ${st} day streak. you are the standard now`,
+      `${t} of discipline. the grind respects you. keep building, king`,
+      `${st} day streak. ${t} on chain. you are what focus looks like`,
     ];
     body = opts[Math.floor(Math.random() * opts.length)];
   } else {
     const opts = [
-      `ascended. ${t} disiplin murni. ${st} hari streak. kau contoh yang mereka kutip`,
-      `${t} tercatat. kau gak patah. kau jadi grindnya. respek`,
-      `${st} hari streak. ${t}. dewa fokus nangis. kau gak tersentuh`,
+      `ascended. ${t} of pure discipline. ${st} day streak. you are the example they quote`,
+      `${t} logged. you did not break. you became the grind. respect`,
+      `${st} day streak. ${t}. the focus gods wept. you are untouchable`,
     ];
     body = opts[Math.floor(Math.random() * opts.length)];
   }
@@ -83,7 +81,9 @@ const INK = "#ffffff";
 const ACCENT = "#8b7bff";
 const DIM = "#9a8fff";
 const LINE = "#3a2f66";
-const SCORE_TXT = "#0a0a0a";
+const SCORE_TXT = "#1a1230";
+const QUOTE = "#c9c2ff"; // soft lavender, not white
+const FONT = "'Space Grotesk', 'Inter', 'Helvetica Neue', sans-serif";
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   ctx.beginPath();
@@ -117,19 +117,35 @@ function loadImg(src: string): Promise<HTMLImageElement> {
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => resolve(img);
-    img.onerror = () => resolve(new Image()); // empty -> skip
+    img.onerror = () => resolve(new Image());
     img.src = src;
   });
 }
 
+// ensure brand fonts are loaded before drawing (avoids ugly fallback)
+async function ensureFonts() {
+  if (typeof document === "undefined" || !document.fonts) return;
+  try {
+    await Promise.all([
+      document.fonts.load("400 26px 'Space Grotesk'"),
+      document.fonts.load("700 24px 'Space Grotesk'"),
+      document.fonts.load("800 52px 'Space Grotesk'"),
+      document.fonts.load("900 150px 'Space Grotesk'"),
+    ]);
+    await document.fonts.ready;
+  } catch {
+    // ignore, fallback to Inter/system
+  }
+}
+
 export async function renderFokusCard(d: FokusCardData): Promise<string> {
+  await ensureFonts();
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
   const ctx = canvas.getContext("2d");
   if (!ctx) return "";
 
-  // background + grid
   ctx.fillStyle = BG;
   ctx.fillRect(0, 0, W, H);
   ctx.strokeStyle = "rgba(255,255,255,0.04)";
@@ -137,24 +153,22 @@ export async function renderFokusCard(d: FokusCardData): Promise<string> {
   for (let x = 0; x <= W; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
   for (let y = 0; y <= H; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
 
-  // outer frame
   ctx.strokeStyle = LINE;
   ctx.lineWidth = 1;
   ctx.strokeRect(20, 20, W - 40, H - 40);
 
-  // ===== LEFT PANEL (62%) =====
+  // ===== LEFT PANEL =====
   const leftW = W * 0.62;
   const M = 56;
 
-  // wordmark + tag
   ctx.textBaseline = "alphabetic";
   ctx.textAlign = "left";
   ctx.fillStyle = INK;
-  ctx.font = "800 52px 'Inter', 'Helvetica Neue', Arial, sans-serif";
-  ctx.fillText("FokusLe", M, 92);
+  ctx.font = `800 52px ${FONT}`;
+  ctx.fillText("Fokusle", M, 92);
 
   ctx.fillStyle = ACCENT;
-  ctx.font = "700 20px 'Helvetica Neue', Arial, sans-serif";
+  ctx.font = `700 20px ${FONT}`;
   ctx.textAlign = "right";
   const tag = "PROOF OF FOCUS";
   let tx = leftW - M;
@@ -164,20 +178,18 @@ export async function renderFokusCard(d: FokusCardData): Promise<string> {
   }
   ctx.textAlign = "left";
 
-  // focus score card (dominant)
   const scoreH = 200;
   const scoreY = 120;
   ctx.fillStyle = CARD;
   roundRect(ctx, M, scoreY, leftW - 2 * M, scoreH, 18);
   ctx.fill();
   ctx.fillStyle = SCORE_TXT;
-  ctx.font = "700 24px 'Helvetica Neue', Arial, sans-serif";
+  ctx.font = `700 24px ${FONT}`;
   ctx.fillText("FOCUS SCORE", M + 36, scoreY + 50);
   const score = Math.min(100, Math.round((Number(d.weeklySeconds) * 100) / (7 * 3600 * 8)));
-  ctx.font = "900 150px 'Inter', 'Helvetica Neue', Arial, sans-serif";
+  ctx.font = `900 150px ${FONT}`;
   ctx.fillText(`${score}%`, M + 36, scoreY + scoreH - 30);
 
-  // stat cards (3 cols)
   const statY = scoreY + scoreH + 24;
   const statH = 96;
   const sw = (leftW - 2 * M - 32) / 3;
@@ -193,21 +205,20 @@ export async function renderFokusCard(d: FokusCardData): Promise<string> {
     roundRect(ctx, x, statY, sw, statH, 14);
     ctx.stroke();
     ctx.fillStyle = DIM;
-    ctx.font = "700 18px 'Helvetica Neue', Arial, sans-serif";
+    ctx.font = `700 18px ${FONT}`;
     ctx.fillText(label, x + 18, statY + 32);
     ctx.fillStyle = INK;
-    ctx.font = "800 36px 'Inter', 'Helvetica Neue', Arial, sans-serif";
+    ctx.font = `800 36px ${FONT}`;
     ctx.fillText(val, x + 18, statY + 74);
   });
 
-  // identity (bottom left): username only
   const idY = H - 48;
   ctx.fillStyle = INK;
-  ctx.font = "800 30px 'Helvetica Neue', Arial, sans-serif";
+  ctx.font = `800 30px ${FONT}`;
   ctx.textAlign = "left";
   ctx.fillText(d.handle ? `@${d.handle}` : "anon", M, idY);
 
-  // ===== RIGHT PANEL (38%) =====
+  // ===== RIGHT PANEL =====
   const rx = leftW;
   ctx.strokeStyle = LINE;
   ctx.lineWidth = 1;
@@ -220,13 +231,11 @@ export async function renderFokusCard(d: FokusCardData): Promise<string> {
 
   const rcx = rx + (W - rx) / 2;
 
-  // LOCKED IN header
   ctx.fillStyle = ACCENT;
-  ctx.font = "700 22px 'Helvetica Neue', Arial, sans-serif";
+  ctx.font = `700 22px ${FONT}`;
   ctx.textAlign = "center";
   ctx.fillText("LOCKED IN", rcx, 60);
 
-  // avatar (circular)
   const av = await loadImg(d.avatarUrl || defaultAvatar(d.wallet));
   const ar = 90;
   const ax = rcx - ar;
@@ -242,7 +251,7 @@ export async function renderFokusCard(d: FokusCardData): Promise<string> {
     ctx.drawImage(av, ax, ay, ar * 2, ar * 2);
   } else {
     ctx.fillStyle = ACCENT;
-    ctx.font = "800 70px 'Inter', 'Helvetica Neue', Arial, sans-serif";
+    ctx.font = `800 70px ${FONT}`;
     ctx.textAlign = "center";
     ctx.fillText("F", rcx, ay + ar + 24);
   }
@@ -253,14 +262,13 @@ export async function renderFokusCard(d: FokusCardData): Promise<string> {
   ctx.arc(rcx, ay + ar, ar, 0, Math.PI * 2);
   ctx.stroke();
 
-  // quote (dynamic, lowercase, wrapped in quotes)
   const quote = pickQuote(Number(d.totalSeconds), Number(d.streak));
-  ctx.fillStyle = INK;
-  ctx.font = "400 26px 'Inter', 'Helvetica Neue', Arial, sans-serif";
+  ctx.fillStyle = QUOTE;
+  ctx.font = `400 26px ${FONT}`;
   ctx.textAlign = "center";
   const lines = wrapText(ctx, quote, (W - rx) - 80);
   let qy = ay + ar * 2 + 44;
-  const lh = 30;
+  const lh = 32;
   for (const ln of lines.slice(0, 7)) {
     ctx.fillText(ln, rcx, qy);
     qy += lh;
