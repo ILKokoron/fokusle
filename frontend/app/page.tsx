@@ -485,7 +485,24 @@ export default function Home() {
 
   const shareText = () => {
     if (!prog) return "";
-    return `🔒 LOCKED IN\n\nToday\n${fmt(prog.weeklySeconds < prog.totalSeconds ? prog.weeklySeconds : prog.totalSeconds)}\n\nWeekly\n${fmt(prog.weeklySeconds)}\n\nCurrent Streak\n${prog.streak} Days\n\nFocus Score\n${fmtPct(prog.weeklySeconds, 7n * 3600n * 8n)}%\n\nWallet\n${address?.slice(0, 6)}…${address?.slice(-4)}\n\n#ProofOfFocus #FokusLe`;
+    return `LOCKED IN
+
+Today
+${fmt(prog.weeklySeconds < prog.totalSeconds ? prog.weeklySeconds : prog.totalSeconds)}
+
+Weekly
+${fmt(prog.weeklySeconds)}
+
+Current Streak
+${prog.streak} Days
+
+Focus Score
+${fmtPct(prog.weeklySeconds, 7n * 3600n * 8n)}%
+
+Wallet
+${address?.slice(0, 6)}…${address?.slice(-4)}
+
+Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
   };
   const share = (platform: string) => {
     const text = shareText();
@@ -930,7 +947,7 @@ export default function Home() {
       </div>
 
       <p style={{ textAlign: "center", color: "#555c6e", fontSize: 11, marginTop: -4 }}>
-        FokusLe · Monad Testnet · Wallet = identity. Commit-reveal proof. No staking.
+        FokusLe · Monad Testnet · Wallet = identity. Signed + replay-proof. No staking.
       </p>
     </div>
   );
