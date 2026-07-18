@@ -12,11 +12,11 @@ But there's a bigger problem. Similar apps can't show how locked in you actually
 Sure, there's the argument that users could cheat, or use a second device to keep the timer running. But is that kind of win what someone serious about their time and self-respect is actually after? Of course not. So lock in, starting now, with Fokusle, where your productive time finally gets the respect it deserves.
 
 ## The solution
-Fokusle makes focus **verifiable**. You commit to a session by signing a message (wallet = identity). The signature is checked onchain before any session counts. No commit, no log. No fake hours.
+So I built Fokusle to make focus verifiable. You lock in by signing a message with your wallet, that's your identity, and the signature gets checked onchain before any session counts. No sign, no log. No way to fake the hours.
 
-Then you build onchain proof: total hours, daily streak, weekly focus, XP, level, plus **soulbound badges** you can't buy, only earn.
+From there you stack real onchain proof: total hours, daily streak, weekly focus, XP, level, plus soulbound badges you can't buy, only earn. While other people flex PnL that gets corny, you flex something harder to fake, how locked in you actually were.
 
-> "Everyone flexes their PnL. We help people flex something harder: consistency."
+> "Everyone flexes their PnL. Fokusle lets you flex something that actually costs you something: your attention."
 
 ## Stack (per hackathon instructions)
 - **Smart contract**: Solidity, deployed via **Foundry** on **Monad Testnet**
@@ -50,11 +50,11 @@ Then you build onchain proof: total hours, daily streak, weekly focus, XP, level
 - No staking. No pool. No token.
 
 ## Product philosophy
-Fokusle is built for people who want a focus app that feels different from the usual ones, light gamification, not hardcore restriction. The point isn't to be the strictest productivity tool. It's to make showing up daily feel real, and to make that proof portable and yours.
+I built Fokusle for people like me, who want a focus app that feels different from the usual ones. Light gamification, not hardcore restriction. The point was never to be the strictest productivity tool. It's to make showing up daily feel real, and to make that proof portable and yours.
 
-On web, a session is a verified presence: you lock in, the timer runs, you finish, the chain records it. We're honest about the limit, a web app can't tell if you put the phone down and scrolled TikTok on another device. The anti-cheat (signature + nonce) stops fake logs and streak inflation, not lack of discipline. Real activity detection comes in the native version (see Roadmap).
+On web, a session is a verified presence: you lock in, the timer runs, you finish, the chain records it. I'm honest about the limit, a web app can't tell if you put the phone down and scrolled TikTok on another device. The anti-cheat, the signature plus the replay-proof nonce, stops fake logs and streak inflation. It doesn't stop lack of discipline, only cheating the numbers. Real activity detection comes in the native version, see Roadmap.
 
-Crypto wallets are still early, but they're heading toward being as normal as a regular wallet. As wallets spread, logging into Fokusle gets easier for everyone, no new account, no password, your focus history travels with your address. The leaderboard and the flex card already create the social layer: you see others, you share your lock-in, you compare streaks.
+Crypto wallets are still early, but they're heading toward being as normal as a regular wallet. As wallets spread, logging into Fokusle gets easier for everyone, no new account, no password, your focus history travels with your address. The leaderboard and the flex card already build the social layer: you see others, you share your lock-in, you compare streaks.
 
 The schizo card and the badges are on purpose. Attention is the economy now. Making discipline something you actually want to post is the whole point.
 
@@ -66,11 +66,11 @@ The schizo card and the badges are on purpose. Attention is the economy now. Mak
 - Quality-of-focus signal beyond raw duration (deep work vs passive reading) once native telemetry exists.
 
 ## Why this wins
-- Real proof, not a database, signature-gated sessions, replay-proof nonces
-- Monad-native: parallel streak reads showcase the parallel EVM
-- Portable identity: name and picture live onchain, no account silo
-- Sells discipline, not money, counter-narrative to PnL-flexing
-- Solves a problem the builder actually has (exact hackathon prompt)
+- Real proof, not a database. Signature-gated sessions, replay-proof nonces, you can't inflate your own streak.
+- Monad-native. Parallel streak reads show off the parallel EVM, and the leaderboard stays cheap to read.
+- Portable identity. Your name and picture live onchain, no account silo, it follows your wallet anywhere.
+- I sell discipline, not money. A counter-narrative to the PnL flex that already feels corny.
+- It solves a problem I actually have, which is the exact prompt of this hackathon.
 
 ---
 Built by kokoron. Solves a problem I actually have.
