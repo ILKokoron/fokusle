@@ -23,9 +23,10 @@ Then you build onchain proof: total hours, daily streak, weekly focus, XP, level
 - **Chain**: Monad Testnet (chainId 10143)
 
 ## Contract
-- Address: `0xAeCA5a0D414688C8b6bc7dEBa24124BB276d7D60`
-- Explorer: https://testnet.monadexplorer.com/address/0xAeCA5a0D414688C8b6bc7dEBa24124BB276d7D60
+- Address: `0x08F71A7564336D176563ED971704EEAd37229D6b`
+- Explorer: https://testnet.monadexplorer.com/address/0x08F71A7564336D176563ED971704EEAd37229D6b
 - Network: Monad Testnet
+- App: https://frontend-wheat-psi-22.vercel.app
 
 ## How "Proof" works (anti-fake)
 1. User picks duration, clicks **Lock In**
