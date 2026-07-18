@@ -47,6 +47,20 @@ const themes = {
 export default function Home() {
   const { address, isConnected } = useAccount();
   const { connect, connectors, isPending: isConnectPending } = useConnect();
+
+  // Mobile-safe connect: try MetaMask connector (deep-links to app on phones),
+  // fall back to injected. Avoids silent no-op when window.ethereum is absent.
+  const connectWallet = async () => {
+    const mm = connectors.find((c) => c.id === "metaMask" || c.name?.toLowerCase().includes("metaMask"));
+    const inj = connectors.find((c) => c.id === "injected");
+    try {
+      if (mm) await connect({ connector: mm });
+      else if (inj) await connect({ connector: inj });
+      else await connect();
+    } catch (e: any) {
+      setMsg("❌ " + (e?.shortMessage || e?.message || "wallet connection failed"));
+    }
+  };
   const { disconnect } = useDisconnect();
   const { writeContract, writeContractAsync, isPending } = useWriteContract();
   const { signMessageAsync } = useSignMessage();
@@ -493,9 +507,12 @@ export default function Home() {
               <div style={{ width: 76, height: 76, borderRadius: 22, background: "linear-gradient(150deg,#8b7bff,#6E54FF)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 32, color: "#fff", fontFamily: "'Space Grotesk', sans-serif", boxShadow: "0 12px 30px rgba(110,84,255,0.4)", marginBottom: 18 }}>F</div>
               <h2 style={{ fontSize: 24, margin: "0 0 6px", fontFamily: "'Space Grotesk', sans-serif", color: "#fff" }}>FokusLe</h2>
               <p style={{ color: T.muted, fontSize: 13, margin: "0 0 30px", lineHeight: 1.5 }}>Proof of Focus. Proof of Discipline.<br />Connect your wallet to start a session.</p>
-              <button onClick={() => connect({ connector: connectors[0] })} style={{ width: "100%", background: "linear-gradient(150deg,#8b7bff,#6E54FF)", color: "#fff", border: "none", padding: "14px 24px", borderRadius: 14, fontWeight: 700, fontSize: 15, cursor: "pointer", boxShadow: "0 8px 24px rgba(110,84,255,0.35)" }}>
+              <button onClick={connectWallet} style={{ width: "100%", background: "linear-gradient(150deg,#8b7bff,#6E54FF)", color: "#fff", border: "none", padding: "14px 24px", borderRadius: 14, fontWeight: 700, fontSize: 15, cursor: "pointer", boxShadow: "0 8px 24px rgba(110,84,255,0.35)" }}>
                 {isConnectPending ? "Connecting..." : "Connect Wallet"}
               </button>
+              {!isConnected && connectors.length > 1 && (
+                <p style={{ color: T.muted, fontSize: 11, marginTop: 10 }}>Opens MetaMask. Install it from your app store if missing.</p>
+              )}
             </div>
           ) : !authed ? (
             <div style={{ ...S.card, marginTop: 60, textAlign: "center" }}>

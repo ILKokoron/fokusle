@@ -1,5 +1,5 @@
 import { http, createConfig, createStorage } from "wagmi";
-import { injected } from "wagmi/connectors";
+import { injected, metaMask } from "wagmi/connectors";
 
 export const monadTestnet = {
   id: 10143,
@@ -27,11 +27,14 @@ const noopStorage = createStorage({
   },
 });
 
-// Pure wagmi: injected connector only (browser wallet / MetaMask).
-// No RainbowKit / WalletConnect => no indexedDB dependency => no mobile crash.
+// metaMask() connector handles mobile deep-linking (opens MetaMask app when no
+// injected provider is present). injected() covers desktop extension wallets.
 export const config = createConfig({
   chains: [monadTestnet],
-  connectors: [injected({ shimDisconnect: true })],
+  connectors: [
+    metaMask(),
+    injected({ shimDisconnect: true }),
+  ],
   transports: { [monadTestnet.id]: http("https://testnet-rpc.monad.xyz") },
   ssr: true,
   storage: noopStorage,
