@@ -86,6 +86,7 @@ export default function Home() {
   const [sessionStart, setSessionStart] = useState(0); // wall-clock ms when session started (proof of presence)
   const [logging, setLogging] = useState(false);
   const [lastTx, setLastTx] = useState<string | null>(null); // last onchain tx hash (for monadvision link)
+  const [lockPopup, setLockPopup] = useState(false); // centered "locked in" popup (auto-dismiss)
   const [showShare, setShowShare] = useState(false);
   const [showWalletPicker, setShowWalletPicker] = useState(false);
   const [customAvatar, setCustomAvatar] = useState<string | null>(null);
@@ -424,7 +425,8 @@ export default function Home() {
     setRunning(true);
     setElapsed(0);
     setSessionStart(Date.now());
-    setMsg("🔒 Locked in. Focus now.");
+    setLockPopup(true);
+    setTimeout(() => setLockPopup(false), 1600);
   };
 
   // Leaving the app (tab switch / minimize / close) while a session is running
@@ -943,6 +945,16 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
               <button onClick={() => setShowShare(false)} style={{ width: "100%", background: "transparent", color: T.muted, border: "none", padding: 10, fontSize: 13, cursor: "pointer" }}>
                 OK, just keep it
               </button>
+            </div>
+          </div>
+        )}
+
+        {lockPopup && (
+          <div style={{ position: "fixed", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 90, pointerEvents: "none" }}>
+            <div style={{ background: "rgba(20,12,40,0.92)", border: `1px solid rgba(110,84,255,0.5)`, borderRadius: 16, padding: "18px 26px", textAlign: "center", boxShadow: "0 12px 40px rgba(110,84,255,0.25)", backdropFilter: "blur(8px)", animation: "fkpop 0.25s ease-out" }}>
+              <div style={{ fontSize: 30, marginBottom: 6 }}>🔒</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "#fff", fontFamily: "var(--font-grotesk), sans-serif", letterSpacing: 0.3 }}>Locked in</div>
+              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.7)", marginTop: 2 }}>Focus now.</div>
             </div>
           </div>
         )}
