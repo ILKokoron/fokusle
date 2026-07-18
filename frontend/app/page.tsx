@@ -77,23 +77,46 @@ export default function Home() {
   const [lockPopup, setLockPopup] = useState(false); // centered "locked in" popup (auto-dismiss)
   const [showShare, setShowShare] = useState(false);
   const [screen, setScreen] = useState<"splash" | "connect">("splash"); // E+D: splash first, then connect
-  const [customAvatar, setCustomAvatar] = useState<string | null>(null);
+  // Onchain avatar (portable across devices — stored in contract, not localStorage)
+  const { data: onchainAvatar, refetch: refetchAvatar } = useReadContract({
+    address: FOCUSPROOF_ADDRESS,
+    abi: FOCUSPROOF_ABI,
+    functionName: "avatar",
+    args: address ? [address] : undefined,
+    query: { enabled: !!address },
+  });
 
-  // load saved custom pfp from localStorage on mount
-  useEffect(() => {
+  const saveCustomAvatar = async (dataUrl: string | null) => {
+    if (!address) return;
     try {
-      const saved = window.localStorage.getItem("fokusle_pfp");
-      if (saved) setCustomAvatar(saved);
-    } catch {}
-  }, []);
-
-  const saveCustomAvatar = (dataUrl: string | null) => {
-    setCustomAvatar(dataUrl);
-    try {
-      if (dataUrl) window.localStorage.setItem("fokusle_pfp", dataUrl);
-      else window.localStorage.removeItem("fokusle_pfp");
-    } catch {}
+      if (dataUrl) {
+        await writeContractAsync({
+          address: FOCUSPROOF_ADDRESS,
+          abi: FOCUSPROOF_ABI,
+          functionName: "setAvatar",
+          args: [dataUrl],
+          account: address as `0x${string}`,
+          chain: monadTestnet,
+        });
+      } else {
+        await writeContractAsync({
+          address: FOCUSPROOF_ADDRESS,
+          abi: FOCUSPROOF_ABI,
+          functionName: "setAvatar",
+          args: [""],
+          account: address as `0x${string}`,
+          chain: monadTestnet,
+        });
+      }
+      await new Promise((r) => setTimeout(r, 2500));
+      await refetchAvatar();
+      setToast({ text: "✅ PFP saved", type: "ok" });
+    } catch {
+      setToast({ text: "❌ Failed", type: "error" });
+    }
   };
+
+  const customAvatar = (onchainAvatar as string) || null;
 
   const { data: progData, refetch: refetchProg } = useReadContract({
     address: FOCUSPROOF_ADDRESS,
@@ -889,16 +912,31 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
                       <img src={customAvatar || nnsProfile?.avatar || `https://api.dicebear.com/7.x/shapes/svg?seed=${address}`} style={{ width: 52, height: 52, borderRadius: 999, border: "2px solid rgba(110,84,255,0.5)", objectFit: "cover" }} />
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 13, fontWeight: 600 }}>Profile picture</div>
-                        <div style={{ fontSize: 11, color: T.muted }}>Custom image saved on this device</div>
+                        <div style={{ fontSize: 11, color: T.muted }}>Stored onchain — follows your wallet to any device</div>
                       </div>
                       <label style={{ background: GHOST.bg, border: `1px solid ${GHOST.border}`, color: GHOST.text, padding: "8px 12px", borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
                         {customAvatar ? "Change" : "Upload"}
                         <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => {
                           const f = e.target.files?.[0];
                           if (!f) return;
-                          const r = new FileReader();
-                          r.onload = () => saveCustomAvatar(r.result as string);
-                          r.readAsDataURL(f);
+                          const reader = new FileReader();
+                          reader.onload = () => {
+                            const img = new Image();
+                            img.onload = () => {
+                              const size = 128;
+                              const canvas = document.createElement("canvas");
+                              canvas.width = size; canvas.height = size;
+                              const ctx = canvas.getContext("2d")!;
+                              // cover-crop to square
+                              const min = Math.min(img.width, img.height);
+                              const sx = (img.width - min) / 2, sy = (img.height - min) / 2;
+                              ctx.drawImage(img, sx, sy, min, min, 0, 0, size, size);
+                              const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
+                              saveCustomAvatar(dataUrl);
+                            };
+                            img.src = reader.result as string;
+                          };
+                          reader.readAsDataURL(f);
                         }} />
                       </label>
                       {customAvatar && (

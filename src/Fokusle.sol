@@ -44,7 +44,12 @@ contract Fokusle {
     // Custom in-app display name (fallback identity if no .nad name is set)
     mapping(address => string) public nickname;
 
+    // Custom avatar — stored ONCHAIN so identity is fully portable across devices.
+    // Frontend resizes to <=128px JPEG and passes a data-URL; bounded to 8KB.
+    mapping(address => string) public avatar;
+
     event NicknameSet(address indexed user, string nickname);
+    event AvatarSet(address indexed user, string avatar);
 
     // Gacha — cosmetic only. Costs XP, no gameplay effect. Pity system: guaranteed
     // Monanimal (any) within GACHA_PITY pulls if no result recorded yet is fine since
@@ -144,6 +149,16 @@ contract Fokusle {
         require(b.length > 0 && b.length <= 20, "Fokusle: nickname must be 1-20 chars");
         nickname[msg.sender] = name;
         emit NicknameSet(msg.sender, name);
+    }
+
+    /// @notice Set a custom avatar stored ONCHAIN (data-URL, resized client-side).
+    ///         Makes identity fully portable: same wallet on any device shows the
+    ///         same PFP. Bounded to 8KB to keep gas reasonable on testnet.
+    function setAvatar(string calldata dataUrl) external {
+        bytes memory b = bytes(dataUrl);
+        require(b.length > 0 && b.length <= 8192, "Fokusle: avatar too large (max 8KB)");
+        avatar[msg.sender] = dataUrl;
+        emit AvatarSet(msg.sender, dataUrl);
     }
 
     /// @notice Spend XP for a cosmetic Monanimal pull. Purely cosmetic —

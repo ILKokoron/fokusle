@@ -1,5 +1,5 @@
 // FokusLe ABI (deployed on Monad Testnet)
-export const FOCUSPROOF_ADDRESS = "0x60CeaB3fd4f2a0388abCA7F56Cdb3a0443dD90cA" as const;
+export const FOCUSPROOF_ADDRESS = "0x2936B3C6E8072133f280109acD43e6530661DAC1" as const;
 
 export const FOCUSPROOF_ABI = [
   {
@@ -71,6 +71,20 @@ export const FOCUSPROOF_ABI = [
   },
   {
     type: "function",
+    name: "setAvatar",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "dataUrl", type: "string" }],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "avatar",
+    stateMutability: "view",
+    inputs: [{ name: "", type: "address" }],
+    outputs: [{ name: "", type: "string" }],
+  },
+  {
+    type: "function",
     name: "pullGacha",
     stateMutability: "nonpayable",
     inputs: [],
@@ -113,6 +127,14 @@ export const FOCUSPROOF_ABI = [
     inputs: [
       { name: "user", type: "address", indexed: true },
       { name: "nickname", type: "string", indexed: false },
+    ],
+  },
+  {
+    type: "event",
+    name: "AvatarSet",
+    inputs: [
+      { name: "user", type: "address", indexed: true },
+      { name: "avatar", type: "string", indexed: false },
     ],
   },
   {
