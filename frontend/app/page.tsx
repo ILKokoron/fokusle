@@ -30,6 +30,14 @@ const fmtPct = (focusSec: bigint, totalSec: bigint) => {
 // Percentage-based display: 1 hour = 100%, rest scales from that base.
 const fmtHourPct = (seconds: number) => Math.round((seconds / 3600) * 100);
 
+const fmtClock = (total: number) => {
+  const s = Math.max(0, Math.floor(total));
+  const hh = Math.floor(s / 3600);
+  const mm = Math.floor((s % 3600) / 60);
+  const ss = s % 60;
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return hh > 0 ? `${hh}:${pad(mm)}:${pad(ss)}` : `${pad(mm)}:${pad(ss)}`;
+};
 const shortAddr = (a?: string) => (a ? `${a.slice(0, 4)}…${a.slice(-2)}` : "");
 
 const themes = {
@@ -74,9 +82,7 @@ export default function Home() {
 
   const [running, setRunning] = useState(false);
   const [started, setStarted] = useState(false);
-  const [durMin, setDurMin] = useState(60);
-  const [dur, setDur] = useState(60 * 60);
-  const [left, setLeft] = useState(60 * 60);
+  const [elapsed, setElapsed] = useState(0); // stopwatch seconds, counts up after Lock in
   const [sessionStart, setSessionStart] = useState(0); // wall-clock ms when session started (proof of presence)
   const [logging, setLogging] = useState(false);
   const [showShare, setShowShare] = useState(false);
@@ -402,18 +408,11 @@ export default function Home() {
     }
   }, [address, signMessageAsync]);
 
-  // timer
+  // stopwatch — counts UP from 0 once a session is running
   useEffect(() => {
     if (!running) return;
     const t = setInterval(() => {
-      setLeft((l) => {
-        if (l <= 1) {
-          clearInterval(t);
-          setRunning(false);
-          return 0;
-        }
-        return l - 1;
-      });
+      setElapsed((e) => e + 1);
     }, 1000);
     return () => clearInterval(t);
   }, [running]);
@@ -422,7 +421,7 @@ export default function Home() {
     // NO onchain tx — just start the local timer. Data is only written on finish/log.
     setStarted(true);
     setRunning(true);
-    setLeft(dur);
+    setElapsed(0);
     setSessionStart(Date.now());
     setMsg("🔒 Locked in. Focus now.");
   };
@@ -433,9 +432,9 @@ export default function Home() {
   const failSession = useCallback(() => {
     setStarted(false);
     setRunning(false);
-    setLeft(dur);
+    setElapsed(0);
     setMsg("❌ Session failed — you left. Discipline means staying.");
-  }, [dur]);
+  }, []);
 
   useEffect(() => {
     const onVis = () => {
@@ -448,22 +447,24 @@ export default function Home() {
   const logSession = async () => {
     if (!address) return;
     // Wall-clock elapsed (real proof of presence, not the local countdown
-    // which can be tampered). Capped at committed duration.
-    const elapsed = Math.max(0, Math.floor((Date.now() - sessionStart) / 1000));
-    const focused = BigInt(Math.min(elapsed, dur));
+    // which can be tampered). This is what gets logged onchain.
+    const elapsedSec = Math.max(0, Math.floor((Date.now() - sessionStart) / 1000));
+    const focused = BigInt(Math.max(elapsedSec, elapsed));
     if (focused <= 0n) { setMsg("⚠️ Timer belum selesai."); return; }
+    // Replay-proof nonce: must equal the next unused session index.
+    const nonce = (prog?.sessionCount ?? 0n) + 1n;
     setLogging(true);
     setMsg("");
     try {
-      // Wallet signs (address, secondsFocused) — attests THIS wallet focused
-      // THIS long. Contract verifies, so data is trustworthy & non-fakeable.
-      const hash = keccak256(encodePacked(["address", "uint256"], [address as `0x${string}`, focused]));
+      // Wallet signs (address, secondsFocused, nonce) — attests THIS wallet focused
+      // THIS long, and the monotonic nonce prevents replay inflation.
+      const hash = keccak256(encodePacked(["address", "uint256", "uint256"], [address as `0x${string}`, focused, nonce]));
       const sig = await signMessageAsync({ message: { raw: hash as `0x${string}` } } as any);
       await writeContractAsync({
         address: FOCUSPROOF_ADDRESS,
         abi: FOCUSPROOF_ABI,
         functionName: "logFocus",
-        args: [focused, sig],
+        args: [focused, nonce, sig],
         account: address,
         chain: monadTestnet,
       } as any);
@@ -472,8 +473,9 @@ export default function Home() {
       await refetchBadge();
       setRunning(false);
       setStarted(false);
+      setElapsed(0);
       setShowShare(true); // show share modal AFTER successful log
-      setMsg("✅ Session logged onchain (signed proof).");
+      setMsg("✅ Session logged onchain (signed, replay-proof).");
     } catch (e: any) {
       setMsg("❌ " + (e?.shortMessage || e?.message));
     } finally {
@@ -534,8 +536,7 @@ export default function Home() {
   const GRID = theme === "dark"
     ? "linear-gradient(rgba(110,84,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(110,84,255,0.06) 1px, transparent 1px)"
     : "linear-gradient(rgba(110,84,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(110,84,255,0.05) 1px, transparent 1px)";
-  const sessionPct = fmtHourPct(Math.max(0, dur - left));
-  const targetPct = fmtHourPct(dur);
+  const sessionPct = started ? Math.min(100, Math.round((elapsed / 3600) * 100)) : 0;
 
   const S = {
     device: { width: 390, minHeight: 780, background: theme === "dark" ? "rgba(14,9,28,0.72)" : "rgba(247,245,255,0.85)", backdropFilter: "blur(14px)", color: T.text, borderRadius: 28, overflow: "hidden", margin: "20px auto", fontFamily: "var(--font-inter), -apple-system, sans-serif", position: "relative" as const, border: `1px solid ${T.border}`, boxShadow: "0 20px 60px rgba(0,0,0,0.45)" },
@@ -605,35 +606,14 @@ export default function Home() {
                           strokeLinecap="round" transform="rotate(-90 100 100)" style={{ transition: "stroke-dashoffset 1s linear", filter: "drop-shadow(0 0 6px rgba(110,84,255,0.5))" }} />
                       </svg>
                       <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", textAlign: "center" }}>
-                        <div style={{ fontSize: 40, fontWeight: 700, color: "#fff", fontFamily: "var(--font-mono), monospace" }}>
-                          {running ? `${sessionPct}%` : "0%"}
+                        <div style={{ fontSize: 44, fontWeight: 700, color: "#fff", fontFamily: "var(--font-mono), monospace", letterSpacing: 1 }}>
+                          {running || started ? fmtClock(elapsed) : "00:00"}
                         </div>
                         <div style={{ fontSize: 11, color: "rgba(255,255,255,0.8)", textTransform: "uppercase", letterSpacing: 1, marginTop: 2 }}>
-                          60 min = 100%
+                          {running ? "Focusing…" : started ? "Paused" : "Ready"}
                         </div>
                       </div>
                     </div>
-
-                    {/* duration input (user sets any minutes they want) */}
-                    {!running && (
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 6, marginBottom: 4 }}>
-                        <span style={{ fontSize: 12, color: "rgba(255,255,255,0.7)" }}>Focus for</span>
-                        <input
-                          type="number"
-                          min={1}
-                          max={1440}
-                          value={durMin}
-                          onChange={(e) => {
-                            const m = Math.max(1, Math.min(1440, Number(e.target.value) || 1));
-                            setDurMin(m);
-                            setDur(m * 60);
-                            setLeft(m * 60);
-                          }}
-                          style={{ width: 64, background: GHOST.bg, border: `1px solid ${T.border}`, color: GHOST.text, borderRadius: 8, padding: "6px 8px", fontSize: 14, fontFamily: "var(--font-mono), monospace", textAlign: "center" }}
-                        />
-                        <span style={{ fontSize: 12, color: T.muted }}>min</span>
-                      </div>
-                    )}
 
                     {!started ? (
                       <button style={{ width: "100%", background: "linear-gradient(150deg,#8b7bff,#6E54FF)", color: "#fff", border: "none", padding: 14, borderRadius: 14, fontWeight: 700, fontSize: 15, marginTop: 14, cursor: "pointer", boxShadow: "0 8px 24px rgba(110,84,255,0.35)" }} onClick={startSession}>
@@ -653,7 +633,7 @@ export default function Home() {
                         </button>
                       </div>
                     )}
-                    <div style={{ textAlign: "center", fontSize: 10, color: T.muted, marginTop: 10, fontFamily: "var(--font-mono), monospace" }}>{durMin} min = 100%, always · Finish = onchain fee<br />Leaving the tab = automatic fail · that's the discipline</div>
+                    <div style={{ textAlign: "center", fontSize: 10, color: T.muted, marginTop: 10, fontFamily: "var(--font-mono), monospace" }}>Finish = onchain fee (signed, replay-proof)<br />Leaving the tab = automatic fail · that's the discipline</div>
                   </div>
 
                   <div style={S.sectionTitle}><h3 style={S.sectionH3}>Top streaks</h3><span style={{ fontSize: 11, color: T.accent, fontWeight: 600, cursor: "pointer" }} onClick={() => setTab("progress")}>See all</span></div>
