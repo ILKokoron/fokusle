@@ -30,44 +30,51 @@ function defaultAvatar(wallet: string): string {
   return `https://api.dicebear.com/7.x/shapes/svg?seed=${wallet || "fokusle"}`;
 }
 
-// Schizo-tier quotes based on TOTAL focus hours.
-// Low hours = heavy sarcasm, caps. High hours = praising the user.
+// Quotes based on TOTAL focus hours. Lower = more self-deprecating,
+// higher = praising the user. Written as normal lowercase sentences,
+// wrapped in " ... " with trailing ....
 function pickQuote(totalSec: number, streakDays: number): string {
   const hrs = totalSec / 3600;
   const st = streakDays;
+  const t = fmt(BigInt(totalSec));
+  let body = "";
   if (hrs < 1) {
-    return [
-      `I LOCKED IN FOR ${fmt(BigInt(totalSec))}. THEY SAID I WOULDN'T. THEY WERE RIGHT BUT I DID IT ANYWAY. 🔒`,
-      `DAY ONE OF THE GRIND. ${fmt(BigInt(totalSec))} LOGGED. DOPAMINE DETOX STARTED (FAILED YESTERDAY). 🔒`,
-      `${fmt(BigInt(totalSec))} OF FOCUS. THE DISCIPLINE IS REAL (SOMEONE PLEASE CHECK ON ME). 🔒`,
-    ][Math.floor(Math.random() * 3)];
+    const opts = [
+      `baru lock in ${t}, mereka bilang gak bakal tahan, mereka benar tapi ya udah`,
+      `hari pertama grind. ${t} kecatat. detox dopamin mulai lagi (kemarin gagal)`,
+      `${t} fokus hari ini. disiplin beneran katanya (tolong cek aku masih waras)`,
+    ];
+    body = opts[Math.floor(Math.random() * opts.length)];
+  } else if (hrs < 5) {
+    const opts = [
+      `${t} di chain. streak ${st} hari. mereka scroll, aku naik level pelan-pelan`,
+      `total ${t} fokus. otakku hampir mesin sekarang, masih bocor dikit`,
+      `streak ${st} hari. ${t} tercatat. algoritma mulai takut kayaknya`,
+    ];
+    body = opts[Math.floor(Math.random() * opts.length)];
+  } else if (hrs < 20) {
+    const opts = [
+      `${t} tercatat. streak ${st} hari. aku sudah jadi protokolnya. monad tahu`,
+      `disiplin agama. ${t} kupanjatkan. ${st} hari streak. amin`,
+      `${st} hari fokus murni. ${t}. mereka gak akan pernah dapet grind ini`,
+    ];
+    body = opts[Math.floor(Math.random() * opts.length)];
+  } else if (hrs < 60) {
+    const opts = [
+      `level legenda: ${t} fokus. ${st} hari streak. kau standarnya sekarang`,
+      `${t} disiplin. grind menghormati kau. terus bangun, king`,
+      `${st} hari streak. ${t} di chain. kau wujudnya fokus`,
+    ];
+    body = opts[Math.floor(Math.random() * opts.length)];
+  } else {
+    const opts = [
+      `ascended. ${t} disiplin murni. ${st} hari streak. kau contoh yang mereka kutip`,
+      `${t} tercatat. kau gak patah. kau jadi grindnya. respek`,
+      `${st} hari streak. ${t}. dewa fokus nangis. kau gak tersentuh`,
+    ];
+    body = opts[Math.floor(Math.random() * opts.length)];
   }
-  if (hrs < 5) {
-    return [
-      `${fmt(BigInt(totalSec))} ON THE CHAIN. STREAK ${st}D. THEY SCROLL, I ASCEND. 🔒`,
-      `WEEKLY GRIND: ${fmt(BigInt(totalSec))}. MY BRAIN IS A MACHINE NOW (SMOKING SLIGHTLY). 🔒`,
-      `${st}D STREAK. ${fmt(BigInt(totalSec))} FOCUSED. THE ALGORITHM FEARS ME. 🔒`,
-    ][Math.floor(Math.random() * 3)];
-  }
-  if (hrs < 20) {
-    return [
-      `${fmt(BigInt(totalSec))} LOGGED. STREAK ${st}D. I AM THE PROTOCOL NOW. MONAD KNOWS. 🔒`,
-      `DISCIPLINE IS A RELIGION. ${fmt(BigInt(totalSec))} PRAYED. ${st}D STREAK. AMEN. 🔒`,
-      `${st}D OF PURE FOCUS. ${fmt(BigInt(totalSec))}. THEY WILL NEVER GET THE GRIND. 🔒`,
-    ][Math.floor(Math.random() * 3)];
-  }
-  if (hrs < 60) {
-    return [
-      `LEGEND STATUS: ${fmt(BigInt(totalSec))} FOCUSED. ${st}D STREAK. YOU ARE THE STANDARD. 🔒`,
-      `${fmt(BigInt(totalSec))} OF DISCIPLINE. THE GRIND RESPECTS YOU. KEEP BUILDING, KING. 🔒`,
-      `${st}D STREAK. ${fmt(BigInt(totalSec))} ON CHAIN. YOU ARE WHAT FOCUS LOOKS LIKE. 🔒`,
-    ][Math.floor(Math.random() * 3)];
-  }
-  return [
-    `ASCENDED. ${fmt(BigInt(totalSec))} OF PURE DISCIPLINE. ${st}D STREAK. YOU ARE THE EXAMPLE THEY QUOTE. 🔒`,
-    `${fmt(BigInt(totalSec))} LOGGED. YOU DID NOT BREAK. YOU BECAME THE GRIND. RESPECT. 🔒`,
-    `${st}D STREAK. ${fmt(BigInt(totalSec))}. THE FOCUS GODS WEPT. YOU ARE UNTOUCHABLE. 🔒`,
-  ][Math.floor(Math.random() * 3)];
+  return `"${body}....`;
 }
 
 const BG = "#0E091C";
@@ -143,7 +150,7 @@ export async function renderFokusCard(d: FokusCardData): Promise<string> {
   ctx.textBaseline = "alphabetic";
   ctx.textAlign = "left";
   ctx.fillStyle = INK;
-  ctx.font = "800 52px 'Arial Black', Arial, sans-serif";
+  ctx.font = "800 52px 'Inter', 'Helvetica Neue', Arial, sans-serif";
   ctx.fillText("FokusLe", M, 92);
 
   ctx.fillStyle = ACCENT;
@@ -167,7 +174,7 @@ export async function renderFokusCard(d: FokusCardData): Promise<string> {
   ctx.font = "700 24px 'Helvetica Neue', Arial, sans-serif";
   ctx.fillText("FOCUS SCORE", M + 36, scoreY + 50);
   const score = Math.min(100, Math.round((Number(d.weeklySeconds) * 100) / (7 * 3600 * 8)));
-  ctx.font = "900 150px 'Arial Black', Arial, sans-serif";
+  ctx.font = "900 150px 'Inter', 'Helvetica Neue', Arial, sans-serif";
   ctx.fillText(`${score}%`, M + 36, scoreY + scoreH - 30);
 
   // stat cards (3 cols)
@@ -189,7 +196,7 @@ export async function renderFokusCard(d: FokusCardData): Promise<string> {
     ctx.font = "700 18px 'Helvetica Neue', Arial, sans-serif";
     ctx.fillText(label, x + 18, statY + 32);
     ctx.fillStyle = INK;
-    ctx.font = "800 36px 'Arial Black', Arial, sans-serif";
+    ctx.font = "800 36px 'Inter', 'Helvetica Neue', Arial, sans-serif";
     ctx.fillText(val, x + 18, statY + 74);
   });
 
@@ -235,7 +242,7 @@ export async function renderFokusCard(d: FokusCardData): Promise<string> {
     ctx.drawImage(av, ax, ay, ar * 2, ar * 2);
   } else {
     ctx.fillStyle = ACCENT;
-    ctx.font = "800 70px 'Arial Black', Arial, sans-serif";
+    ctx.font = "800 70px 'Inter', 'Helvetica Neue', Arial, sans-serif";
     ctx.textAlign = "center";
     ctx.fillText("F", rcx, ay + ar + 24);
   }
@@ -246,10 +253,10 @@ export async function renderFokusCard(d: FokusCardData): Promise<string> {
   ctx.arc(rcx, ay + ar, ar, 0, Math.PI * 2);
   ctx.stroke();
 
-  // quote (schizo, dynamic)
+  // quote (dynamic, lowercase, wrapped in quotes)
   const quote = pickQuote(Number(d.totalSeconds), Number(d.streak));
   ctx.fillStyle = INK;
-  ctx.font = "600 22px 'Helvetica Neue', Arial, sans-serif";
+  ctx.font = "400 26px 'Inter', 'Helvetica Neue', Arial, sans-serif";
   ctx.textAlign = "center";
   const lines = wrapText(ctx, quote, (W - rx) - 80);
   let qy = ay + ar * 2 + 44;
