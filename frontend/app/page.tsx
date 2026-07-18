@@ -316,15 +316,21 @@ export default function Home() {
     if (!nicknameInput.trim()) return;
     setNicknameSaving(true);
     try {
-      writeContract({
+      await writeContractAsync({
         address: FOCUSPROOF_ADDRESS,
         abi: FOCUSPROOF_ABI,
         functionName: "setNickname",
         args: [nicknameInput.trim().slice(0, 20)],
-        account: address,
+        account: address as `0x${string}`,
         chain: monadTestnet,
       });
-      setTimeout(() => refetchNickname(), 3000);
+      // wait for onchain confirmation, then refetch so displayName updates
+      await new Promise((r) => setTimeout(r, 2500));
+      await refetchNickname();
+      setNicknameInput("");
+      setToast({ text: "✅ Name saved", type: "ok" });
+    } catch (e: any) {
+      setToast({ text: "❌ Failed", type: "error" });
     } finally {
       setNicknameSaving(false);
     }
@@ -438,7 +444,7 @@ export default function Home() {
     setStarted(false);
     setRunning(false);
     setElapsed(0);
-    setToast({ text: "❌ Session failed — you left. Discipline means staying.", type: "error" });
+    setToast({ text: "❌ Session failed — left tab", type: "error" });
   }, []);
 
   useEffect(() => {
@@ -455,7 +461,7 @@ export default function Home() {
     // which can be tampered). This is what gets logged onchain.
     const elapsedSec = Math.max(0, Math.floor((Date.now() - sessionStart) / 1000));
     const focused = BigInt(Math.max(elapsedSec, elapsed));
-    if (focused <= 0n) { setToast({ text: "⚠️ Timer belum selesai.", type: "error" }); return; }
+    if (focused <= 0n) { setToast({ text: "⚠️ Timer not started", type: "error" }); return; }
     // Replay-proof nonce: must equal the next unused session index.
     const nonce = (prog?.sessionCount ?? 0n) + 1n;
     setLogging(true);
@@ -480,9 +486,9 @@ export default function Home() {
       setStarted(false);
       setElapsed(0);
       setShowShare(true); // show share modal AFTER successful log
-      setToast({ text: "✅ Session logged onchain (signed, replay-proof)." + (typeof tx === "string" ? ` View: https://testnet.monadvision.com/tx/${tx}` : ""), type: "ok" });
+      setToast({ text: "✅ Success", type: "ok" });
     } catch (e: any) {
-      setToast({ text: "❌ " + (e?.shortMessage || e?.message), type: "error" });
+      setToast({ text: "❌ Failed", type: "error" });
     } finally {
       setLogging(false);
     }
@@ -514,7 +520,7 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
     if (platform === "dc") {
       navigator.clipboard.writeText(text);
       downloadCard();
-      setToast({ text: "📋 Lock-In card copied + downloaded — paste to Discord.", type: "ok" });
+      setToast({ text: "📋 Card copied", type: "ok" });
       return;
     }
     // X: text-only redirect + auto-download flex card PNG (user attaches manually)
@@ -546,7 +552,7 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
     a.download = `fokusle-lockedin-${address?.slice(0, 6)}.png`;
     a.click();
     URL.revokeObjectURL(url);
-    setToast({ text: "🖼️ Lock-In Card downloaded.", type: "ok" });
+    setToast({ text: "🖼️ Card downloaded", type: "ok" });
   };
 
   const cardToday = fmt(prog?.weeklySeconds ?? 0n);
@@ -934,14 +940,14 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
 
         {showShare && (
           <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
-            <div style={{ width: 300, background: T.card, border: `1px solid ${T.border}`, borderRadius: 18, padding: 20, textAlign: "center" }}>
+            <div style={{ width: 260, background: T.card, border: `1px solid ${T.border}`, borderRadius: 18, padding: 18, textAlign: "center" }}>
               <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 6, fontFamily: "var(--font-grotesk), sans-serif" }}>Session locked in</div>
-              <p style={{ color: T.muted, fontSize: 12, margin: "0 0 16px", lineHeight: 1.5 }}>Your flex card is ready. Share it or keep it to yourself.</p>
-              <button onClick={() => { share("x"); setShowShare(false); }} style={{ width: "100%", background: T.accent, color: "#fff", border: "none", padding: 13, borderRadius: 12, fontWeight: 700, fontSize: 14, cursor: "pointer", marginBottom: 8 }}>
+              <p style={{ color: T.muted, fontSize: 12, margin: "0 0 16px", lineHeight: 1.5 }}>Your flex card is ready. Share it or keep it.</p>
+              <button onClick={() => { share("x"); setShowShare(false); }} style={{ width: "100%", background: T.accent, color: "#fff", border: "none", padding: 12, borderRadius: 12, fontWeight: 700, fontSize: 14, cursor: "pointer", marginBottom: 8 }}>
                 Share to X
               </button>
               <button onClick={() => setShowShare(false)} style={{ width: "100%", background: "transparent", color: T.muted, border: "none", padding: 10, fontSize: 13, cursor: "pointer" }}>
-                OK, just keep it
+                Keep it
               </button>
             </div>
           </div>
