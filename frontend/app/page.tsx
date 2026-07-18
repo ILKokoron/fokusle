@@ -59,7 +59,6 @@ export default function Home() {
   const [theme, setTheme] = useState<"dark" | "light">("dark");
 
   const [running, setRunning] = useState(false);
-  const [committed, setCommitted] = useState(false);
   const [durMin, setDurMin] = useState(60);
   const [dur, setDur] = useState(60 * 60);
   const [left, setLeft] = useState(60 * 60);
@@ -386,38 +385,15 @@ export default function Home() {
   }, [running]);
 
   const startSession = async () => {
-    if (!address) return;
-    setMsg("✍️ Signing commit...");
-    try {
-      // contract hashes keccak256(addr, duration) then recovers with EIP-191 prefix.
-      // viem signMessage({raw}) auto-applies the EIP-191 prefix → matches.
-      const h = keccak256(
-        encodePacked(["address", "uint256"], [address as `0x${string}`, BigInt(dur)])
-      );
-      const sig = await signMessageAsync({ account: address, message: { raw: h } });
-      setMsg("⛓️ Committing onchain...");
-      await writeContractAsync({
-        address: FOCUSPROOF_ADDRESS,
-        abi: FOCUSPROOF_ABI,
-        functionName: "commit",
-        args: [BigInt(dur), sig as `0x${string}`],
-        account: address,
-        chain: monadTestnet,
-      } as any);
-      // timer baru jalan kalau tx beneran di-submit (cancel → masuk catch, gak jalan)
-      setCommitted(true);
-      setLeft(dur);
-      setRunning(true);
-      setMsg("🔒 Locked in. Focus now.");
-    } catch (e: any) {
-      setMsg("❌ " + (e?.shortMessage || e?.message || "commit cancelled"));
-    }
+    // NO onchain tx — just start the local timer. Data is only written on finish/log.
+    setRunning(true);
+    setLeft(dur);
+    setMsg("🔒 Locked in. Focus now.");
   };
 
   const logSession = async () => {
     if (!address) return;
     const focused = BigInt(dur - left);
-    if (!committed) { setMsg("⚠️ Commit dulu sebelum mulai."); return; }
     if (focused <= 0n) { setMsg("⚠️ Timer belum selesai."); return; }
     setLogging(true);
     setMsg("");
@@ -433,7 +409,6 @@ export default function Home() {
       // wait for receipt + refetch onchain progress
       await refetchProg();
       await refetchBadge();
-      setCommitted(false);
       setRunning(false);
       setShowShare(true); // show share modal AFTER successful log
       setMsg("✅ Session logged onchain.");
@@ -550,7 +525,7 @@ export default function Home() {
                       </svg>
                       <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", textAlign: "center" }}>
                         <div style={{ fontSize: 40, fontWeight: 700, color: "#fff", fontFamily: "'Roboto Mono', monospace" }}>
-                          {running || committed ? `${sessionPct}%` : "0%"}
+                          {running ? `${sessionPct}%` : "0%"}
                         </div>
                         <div style={{ fontSize: 11, color: "rgba(255,255,255,0.8)", textTransform: "uppercase", letterSpacing: 1, marginTop: 2 }}>
                           60 min = 100%
@@ -559,7 +534,7 @@ export default function Home() {
                     </div>
 
                     {/* duration input (user sets any minutes they want) */}
-                    {!running && !committed && (
+                    {!running && (
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 6, marginBottom: 4 }}>
                         <span style={{ fontSize: 12, color: "rgba(255,255,255,0.7)" }}>Focus for</span>
                         <input
@@ -579,7 +554,7 @@ export default function Home() {
                       </div>
                     )}
 
-                    {!running && !committed ? (
+                    {!running ? (
                       <button style={{ width: "100%", background: "#fff", color: T.accent, border: "none", padding: 14, borderRadius: 14, fontWeight: 700, fontSize: 14, marginTop: 14, cursor: "pointer" }} onClick={startSession}>
                         Lock in
                       </button>

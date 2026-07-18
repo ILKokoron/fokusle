@@ -85,18 +85,12 @@ contract Fokusle {
         emit Committed(msg.sender, duration, focus[msg.sender].committedUntil);
     }
 
-    /// @notice Step 2: reveal + log a completed session. Must be within commit window.
+    /// @notice Log a completed focus session directly. No commit step required —
+    ///         the frontend runs a local timer and only hits the chain on finish.
     function logFocus(uint256 secondsFocused) external {
         require(secondsFocused > 0 && secondsFocused <= 86400, "Fokusle: bad duration");
 
         FocusData storage f = focus[msg.sender];
-        require(f.committedUntil != 0, "Fokusle: commit first");
-        require(block.timestamp <= f.committedUntil, "Fokusle: commit expired");
-        require(secondsFocused <= f.commitDuration, "Fokusle: exceeds committed duration");
-        require(block.timestamp >= f.commitStart + secondsFocused, "Fokusle: not enough time elapsed");
-        f.committedUntil = 0; // consume
-        f.commitStart = 0;
-        f.commitDuration = 0;
 
         uint256 today = block.timestamp / 1 days;
         uint256 week = block.timestamp / 1 weeks;
