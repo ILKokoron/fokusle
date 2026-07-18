@@ -27,8 +27,12 @@ const noopStorage = createStorage({
   },
 });
 
-// metaMask() connector handles mobile deep-linking (opens MetaMask app when no
-// injected provider is present). injected() covers desktop extension wallets.
+// Custom injected connectors for Rabby + OKX (detect window flag).
+const rabby = injected({ target: "rabby", shimDisconnect: true });
+const okx = injected({ target: "okxWallet", shimDisconnect: true });
+
+// metaMask() deep-links to app on mobile. injected() covers generic + Rainbow
+// desktop extension. Rabby/OKX added for broader wallet picker.
 export const config = createConfig({
   chains: [monadTestnet],
   connectors: [
@@ -36,8 +40,18 @@ export const config = createConfig({
       dappMetadata: { name: "FokusLe", url: "https://fokusle.vercel.app" },
     }),
     injected({ shimDisconnect: true }),
+    rabby,
+    okx,
   ],
   transports: { [monadTestnet.id]: http("https://testnet-rpc.monad.xyz") },
   ssr: true,
   storage: noopStorage,
 });
+
+// Display metadata for the connect picker UI.
+export const WALLET_PICKER = [
+  { id: "metaMask", name: "MetaMask", emoji: "🦊", note: "Opens app on mobile" },
+  { id: "rabby", name: "Rabby", emoji: "🐰", note: "Extension / mobile" },
+  { id: "okxWallet", name: "OKX Wallet", emoji: "⭕", note: "Exchange wallet" },
+  { id: "injected", name: "Rainbow / Other", emoji: "🌈", note: "Browser wallet" },
+] as const;

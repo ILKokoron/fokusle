@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useAccount, useReadContract, useWriteContract, useSignMessage, usePublicClient, useConnect, useDisconnect } from "wagmi";
 import { keccak256, encodePacked, encodeAbiParameters, parseAbiParameters } from "viem";
 import { FOCUSPROOF_ADDRESS, FOCUSPROOF_ABI, BADGE_META, MONANIMAL_NAMES } from "../lib/abi";
+import { WALLET_PICKER } from "../lib/wagmi";
 import { renderFokusCard, dataUrlToBlob, type CardBadge } from "../lib/card";
 import { monadTestnet } from "../lib/wagmi";
 
@@ -48,15 +49,14 @@ export default function Home() {
   const { address, isConnected } = useAccount();
   const { connect, connectors, isPending: isConnectPending } = useConnect();
 
-  // Mobile-safe connect: try MetaMask connector (deep-links to app on phones),
-  // fall back to injected. Avoids silent no-op when window.ethereum is absent.
-  const connectWallet = async () => {
-    const mm = connectors.find((c) => c.id === "metaMask" || c.name?.toLowerCase().includes("metaMask"));
-    const inj = connectors.find((c) => c.id === "injected");
+  // Open wallet picker modal instead of auto-connecting.
+  const connectWallet = () => setShowWalletPicker(true);
+
+  const pickConnector = async (id: string) => {
+    setShowWalletPicker(false);
+    const c = connectors.find((x) => x.id === id) || connectors[0];
     try {
-      if (mm) await connect({ connector: mm });
-      else if (inj) await connect({ connector: inj });
-      else await connect();
+      await connect({ connector: c });
     } catch (e: any) {
       setMsg("❌ " + (e?.shortMessage || e?.message || "wallet connection failed"));
     }
@@ -79,6 +79,7 @@ export default function Home() {
   const [left, setLeft] = useState(60 * 60);
   const [logging, setLogging] = useState(false);
   const [showShare, setShowShare] = useState(false);
+  const [showWalletPicker, setShowWalletPicker] = useState(false);
   const [customAvatar, setCustomAvatar] = useState<string | null>(null);
 
   // load saved custom pfp from localStorage on mount
@@ -535,9 +536,7 @@ export default function Home() {
               <button onClick={connectWallet} style={{ width: "100%", background: "linear-gradient(150deg,#8b7bff,#6E54FF)", color: "#fff", border: "none", padding: "14px 24px", borderRadius: 14, fontWeight: 700, fontSize: 15, cursor: "pointer", boxShadow: "0 8px 24px rgba(110,84,255,0.35)" }}>
                 {isConnectPending ? "Connecting..." : "Connect Wallet"}
               </button>
-              {!isConnected && connectors.length > 1 && (
-                <p style={{ color: T.muted, fontSize: 11, marginTop: 10 }}>Opens MetaMask. Install it from your app store if missing.</p>
-              )}
+              <p style={{ color: T.muted, fontSize: 11, marginTop: 10 }}>Choose your wallet to begin.</p>
             </div>
           ) : !authed ? (
             <div style={{ ...S.card, marginTop: 60, textAlign: "center" }}>
@@ -875,6 +874,31 @@ export default function Home() {
             <button style={S.tab(tab === "progress")} onClick={() => setTab("progress")}>Progress</button>
             <button style={S.tab(tab === "pet")} onClick={() => setTab("pet")}>Pet</button>
             <button style={S.tab(tab === "profile" || tab === "settings")} onClick={() => setTab("profile")}>Profile</button>
+          </div>
+        )}
+
+        {showWalletPicker && (
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
+            <div style={{ width: 300, background: T.card, border: `1px solid ${T.border}`, borderRadius: 18, padding: 20 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4, fontFamily: "'Space Grotesk', sans-serif" }}>Connect a wallet</div>
+              <p style={{ color: T.muted, fontSize: 12, margin: "0 0 14px" }}>Pick how you want to sign in.</p>
+              {WALLET_PICKER.map((w) => (
+                <button
+                  key={w.id}
+                  onClick={() => pickConnector(w.id)}
+                  style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, background: GHOST.bg, border: `1px solid ${GHOST.border}`, borderRadius: 12, padding: "12px 14px", marginBottom: 8, cursor: "pointer", textAlign: "left" }}
+                >
+                  <span style={{ fontSize: 22 }}>{w.emoji}</span>
+                  <span style={{ flex: 1 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: T.text }}>{w.name}</div>
+                    <div style={{ fontSize: 11, color: T.muted }}>{w.note}</div>
+                  </span>
+                </button>
+              ))}
+              <button onClick={() => setShowWalletPicker(false)} style={{ width: "100%", background: "transparent", color: T.muted, border: "none", padding: 10, fontSize: 13, cursor: "pointer", marginTop: 2 }}>
+                Cancel
+              </button>
+            </div>
           </div>
         )}
 
