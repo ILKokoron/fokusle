@@ -17,7 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
         />
       </head>
-      <body style={{ margin: 0, background: "#0b0e14", color: "#e6e6e6", fontFamily: "'Inter', system-ui, sans-serif" }}>
+      <body style={{ margin: 0, background: "#0a0712", backgroundImage: "linear-gradient(rgba(110,84,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(110,84,255,0.06) 1px, transparent 1px)", backgroundSize: "26px 26px", color: "#e6e6e6", fontFamily: "'Inter', system-ui, sans-serif" }}>
         <GlobalError>
           <Providers>{children}</Providers>
         </GlobalError>

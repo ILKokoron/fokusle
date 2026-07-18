@@ -471,35 +471,36 @@ export default function Home() {
   const targetPct = fmtHourPct(dur);
 
   const S = {
-    device: { width: 390, minHeight: 780, background: T.bg, color: T.text, borderRadius: 24, overflow: "hidden", margin: "20px auto", fontFamily: "'Inter', -apple-system, sans-serif", position: "relative" as const, border: `1px solid ${T.border}` },
+    device: { width: 390, minHeight: 780, background: theme === "dark" ? "rgba(14,9,28,0.72)" : "rgba(247,245,255,0.85)", backdropFilter: "blur(14px)", color: T.text, borderRadius: 28, overflow: "hidden", margin: "20px auto", fontFamily: "'Inter', -apple-system, sans-serif", position: "relative" as const, border: `1px solid ${T.border}`, boxShadow: "0 20px 60px rgba(0,0,0,0.45)" },
     screen: { padding: "16px 20px 90px", minHeight: 700 },
-    hero: { backgroundImage: T.grad, borderRadius: 24, padding: "22px 20px 26px", marginBottom: 16 },
-    card: { background: T.card, border: `1px solid ${T.border}`, borderRadius: 18, padding: 16, marginBottom: 12 },
+    hero: { background: "linear-gradient(160deg, rgba(110,84,255,0.20) 0%, rgba(42,31,102,0.10) 50%, transparent 100%)", border: "1px solid rgba(110,84,255,0.35)", borderRadius: 24, padding: "22px 20px 26px", marginBottom: 16, boxShadow: "0 8px 30px rgba(110,84,255,0.10)" },
+    card: { background: T.card, border: `1px solid ${T.border}`, borderRadius: 18, padding: 16, marginBottom: 12, backdropFilter: "blur(6px)" },
     sectionTitle: { display: "flex", justifyContent: "space-between", alignItems: "center", margin: "18px 0 10px" } as const,
-    sectionH3: { fontSize: 13, fontWeight: 700, margin: 0, fontFamily: "'Space Grotesk', sans-serif" } as const,
+    sectionH3: { fontSize: 13, fontWeight: 700, margin: 0, fontFamily: "'Space Grotesk', sans-serif", letterSpacing: 0.3 } as const,
     chip: (active: boolean) => ({ flex: 1, textAlign: "center" as const, background: active ? "#fff" : "rgba(255,255,255,0.12)", color: active ? T.accent : "#fff", fontSize: 12, fontWeight: 600, padding: "8px 0 6px", borderRadius: 14, cursor: "pointer", border: "none" }),
-    tabbar: { position: "absolute" as const, bottom: 0, left: 0, right: 0, height: 64, background: T.card, borderTop: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "space-around" },
-    tab: (active: boolean) => ({ color: active ? T.accent : T.muted, background: active ? T.card2 : "transparent", fontSize: 12, fontWeight: 600, padding: "8px 14px", borderRadius: 10, cursor: "pointer", border: "none", fontFamily: "'Inter', sans-serif" }),
+    tabbar: { position: "absolute" as const, bottom: 0, left: 0, right: 0, height: 64, background: T.card, borderTop: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "space-around", backdropFilter: "blur(10px)" },
+    tab: (active: boolean) => ({ color: active ? "#fff" : T.muted, background: active ? "linear-gradient(150deg,#8b7bff,#6E54FF)" : "transparent", fontSize: 12, fontWeight: 700, padding: "8px 16px", borderRadius: 10, cursor: "pointer", border: "none", fontFamily: "'Inter', sans-serif", boxShadow: active ? "0 4px 14px rgba(110,84,255,0.35)" : "none" }),
     feedItem: { display: "flex", alignItems: "center", gap: 12, padding: "12px 0", borderBottom: `1px solid ${T.border}` },
     streakTag: { marginLeft: "auto", background: T.card2, color: T.accent, fontSize: 11, fontWeight: 700, padding: "5px 10px", borderRadius: 999, fontFamily: "'Roboto Mono', monospace" },
   };
 
   return (
-    <div style={{ background: theme === "dark" ? "#0a0710" : "#eee9ff", minHeight: "100vh", padding: "20px 0" }}>
+    <div style={{ background: theme === "dark" ? "#0a0712" : "#eee9ff", minHeight: "100vh", padding: "20px 0", backgroundImage: theme === "dark" ? "linear-gradient(rgba(110,84,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(110,84,255,0.06) 1px, transparent 1px)" : "none", backgroundSize: "26px 26px" }}>
       <div style={S.device as any}>
         <div style={S.screen}>
           {!isConnected ? (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: 600, textAlign: "center", padding: "0 10px" }}>
-              <h2 style={{ fontSize: 18, margin: "0 0 8px", fontFamily: "'Space Grotesk', sans-serif" }}>FokusLe</h2>
-              <p style={{ color: T.muted, fontSize: 13, margin: "0 0 28px", lineHeight: 1.5 }}>Proof of Focus. Proof of Discipline.<br />Connect your wallet to start a session.</p>
-              <button onClick={() => connect({ connector: connectors[0] })} style={{ background: T.accent, color: "#fff", border: "none", padding: "12px 24px", borderRadius: 14, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: 640, textAlign: "center", padding: "0 16px" }}>
+              <div style={{ width: 76, height: 76, borderRadius: 22, background: "linear-gradient(150deg,#8b7bff,#6E54FF)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 32, color: "#fff", fontFamily: "'Space Grotesk', sans-serif", boxShadow: "0 12px 30px rgba(110,84,255,0.4)", marginBottom: 18 }}>F</div>
+              <h2 style={{ fontSize: 24, margin: "0 0 6px", fontFamily: "'Space Grotesk', sans-serif", color: "#fff" }}>FokusLe</h2>
+              <p style={{ color: T.muted, fontSize: 13, margin: "0 0 30px", lineHeight: 1.5 }}>Proof of Focus. Proof of Discipline.<br />Connect your wallet to start a session.</p>
+              <button onClick={() => connect({ connector: connectors[0] })} style={{ width: "100%", background: "linear-gradient(150deg,#8b7bff,#6E54FF)", color: "#fff", border: "none", padding: "14px 24px", borderRadius: 14, fontWeight: 700, fontSize: 15, cursor: "pointer", boxShadow: "0 8px 24px rgba(110,84,255,0.35)" }}>
                 {isConnectPending ? "Connecting..." : "Connect Wallet"}
               </button>
             </div>
           ) : !authed ? (
             <div style={{ ...S.card, marginTop: 60, textAlign: "center" }}>
               <p style={{ margin: "0 0 12px", fontSize: 13, color: T.muted }}>{shortAddr(address)}</p>
-              <button style={{ width: "100%", background: T.accent, color: "#fff", border: "none", padding: 14, borderRadius: 14, fontWeight: 700, fontSize: 14, cursor: "pointer" }} onClick={signIn}>
+              <button style={{ width: "100%", background: "linear-gradient(150deg,#8b7bff,#6E54FF)", color: "#fff", border: "none", padding: 14, borderRadius: 14, fontWeight: 700, fontSize: 14, cursor: "pointer", boxShadow: "0 8px 24px rgba(110,84,255,0.3)" }} onClick={signIn}>
                 Sign in
               </button>
             </div>
@@ -512,7 +513,10 @@ export default function Home() {
                 <>
                   <div style={S.hero}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-                      <div style={{ fontSize: 15, fontWeight: 700, color: "#fff", fontFamily: "'Space Grotesk', sans-serif" }}>FokusLe</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <div style={{ width: 26, height: 26, borderRadius: 8, background: "linear-gradient(150deg,#8b7bff,#6E54FF)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14, color: "#fff", fontFamily: "'Space Grotesk', sans-serif" }}>F</div>
+                        <div style={{ fontSize: 15, fontWeight: 700, color: "#fff", fontFamily: "'Space Grotesk', sans-serif" }}>FokusLe</div>
+                      </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.15)", borderRadius: 999, padding: "5px 10px 5px 6px" }}>
                         <div style={{ width: 7, height: 7, borderRadius: 999, background: "#4ADE80" }} />
                         <div style={{ fontSize: 11, fontWeight: 600, color: "#fff" }}>{displayName}</div>
@@ -521,10 +525,16 @@ export default function Home() {
 
                     <div style={{ display: "flex", justifyContent: "center", margin: "6px 0 10px", position: "relative" }}>
                       <svg width="200" height="200" viewBox="0 0 200 200">
-                        <circle cx="100" cy="100" r="86" stroke="rgba(255,255,255,0.2)" strokeWidth="14" fill="none" />
-                        <circle cx="100" cy="100" r="86" stroke="#fff" strokeWidth="14" fill="none"
+                        <defs>
+                          <linearGradient id="ring" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stopColor="#8b7bff" />
+                            <stop offset="100%" stopColor="#6E54FF" />
+                          </linearGradient>
+                        </defs>
+                        <circle cx="100" cy="100" r="86" stroke="rgba(255,255,255,0.12)" strokeWidth="14" fill="none" />
+                        <circle cx="100" cy="100" r="86" stroke="url(#ring)" strokeWidth="14" fill="none"
                           strokeDasharray={540} strokeDashoffset={540 - (540 * Math.min(sessionPct, 100)) / 100}
-                          strokeLinecap="round" transform="rotate(-90 100 100)" style={{ transition: "stroke-dashoffset 1s linear" }} />
+                          strokeLinecap="round" transform="rotate(-90 100 100)" style={{ transition: "stroke-dashoffset 1s linear", filter: "drop-shadow(0 0 6px rgba(110,84,255,0.5))" }} />
                       </svg>
                       <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", textAlign: "center" }}>
                         <div style={{ fontSize: 40, fontWeight: 700, color: "#fff", fontFamily: "'Roboto Mono', monospace" }}>
@@ -558,19 +568,19 @@ export default function Home() {
                     )}
 
                     {!started ? (
-                      <button style={{ width: "100%", background: "#fff", color: T.accent, border: "none", padding: 14, borderRadius: 14, fontWeight: 700, fontSize: 14, marginTop: 14, cursor: "pointer" }} onClick={startSession}>
+                      <button style={{ width: "100%", background: "linear-gradient(150deg,#8b7bff,#6E54FF)", color: "#fff", border: "none", padding: 14, borderRadius: 14, fontWeight: 700, fontSize: 15, marginTop: 14, cursor: "pointer", boxShadow: "0 8px 24px rgba(110,84,255,0.35)" }} onClick={startSession}>
                         Lock in
                       </button>
                     ) : running ? (
-                      <button style={{ width: "100%", background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.4)", padding: 14, borderRadius: 14, fontWeight: 700, fontSize: 14, marginTop: 14, cursor: "pointer" }} onClick={() => setRunning(false)}>
+                      <button style={{ width: "100%", background: "rgba(255,255,255,0.12)", color: "#fff", border: "1px solid rgba(255,255,255,0.35)", padding: 14, borderRadius: 14, fontWeight: 700, fontSize: 15, marginTop: 14, cursor: "pointer", backdropFilter: "blur(6px)" }} onClick={() => setRunning(false)}>
                         Pause
                       </button>
                     ) : (
                       <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-                        <button style={{ flex: 1, background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.4)", padding: 14, borderRadius: 14, fontWeight: 700, fontSize: 14, cursor: "pointer" }} onClick={() => setRunning(true)}>
+                        <button style={{ flex: 1, background: "rgba(255,255,255,0.12)", color: "#fff", border: "1px solid rgba(255,255,255,0.35)", padding: 14, borderRadius: 14, fontWeight: 700, fontSize: 14, cursor: "pointer", backdropFilter: "blur(6px)" }} onClick={() => setRunning(true)}>
                           Resume
                         </button>
-                        <button style={{ flex: 1, background: "#fff", color: T.accent, border: "none", padding: 14, borderRadius: 14, fontWeight: 700, fontSize: 14, cursor: "pointer" }} onClick={logSession} disabled={isPending || logging}>
+                        <button style={{ flex: 1, background: "linear-gradient(150deg,#8b7bff,#6E54FF)", color: "#fff", border: "none", padding: 14, borderRadius: 14, fontWeight: 700, fontSize: 14, cursor: "pointer", boxShadow: "0 8px 24px rgba(110,84,255,0.35)" }} onClick={logSession} disabled={isPending || logging}>
                           Finish
                         </button>
                       </div>
@@ -705,9 +715,9 @@ export default function Home() {
                       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 112.83 2.83l.06-.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" /></svg>
                     </div>
                   </div>
-                  <div style={{ ...S.card, textAlign: "center" }}>
-                    <img src={nnsProfile?.avatar || `https://api.dicebear.com/7.x/shapes/svg?seed=${address}`} style={{ width: 56, height: 56, borderRadius: 999, margin: "0 auto 10px", display: "block" }} />
-                    <div style={{ fontWeight: 700, fontSize: 16, color: T.accent, fontFamily: "'Space Grotesk', sans-serif" }}>{displayName}</div>
+                  <div style={{ ...S.card, textAlign: "center", background: "linear-gradient(160deg, rgba(110,84,255,0.12) 0%, rgba(42,31,102,0.06) 60%, transparent 100%)", border: "1px solid rgba(110,84,255,0.30)" }}>
+                    <img src={nnsProfile?.avatar || `https://api.dicebear.com/7.x/shapes/svg?seed=${address}`} style={{ width: 64, height: 64, borderRadius: 999, margin: "0 auto 10px", display: "block", border: "2px solid rgba(110,84,255,0.5)", boxShadow: "0 6px 18px rgba(110,84,255,0.25)" }} />
+                    <div style={{ fontWeight: 700, fontSize: 17, color: "#fff", fontFamily: "'Space Grotesk', sans-serif" }}>{displayName}</div>
                     <div style={{ color: T.muted, fontSize: 11, marginTop: 2 }}>{address}</div>
                   </div>
 
