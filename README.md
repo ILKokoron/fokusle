@@ -23,10 +23,10 @@ Then you build onchain proof: total hours, daily streak, weekly focus, XP, level
 - **Chain**: Monad Testnet (chainId 10143)
 
 ## Contract
-- Address: `0xDBb6e0c58AEA9E197CB0E7A3cb8d8dE6a62F0B49`
-- Explorer: https://testnet.monadvision.com/address/0xDBb6e0c58AEA9E197CB0E7A3cb8d8dE6a62F0B49
+- Address: `0x2936B3C6E8072133f280109acD43e6530661DAC1`
+- Explorer: https://testnet.monadvision.com/address/0x2936B3C6E8072133f280109acD43e6530661DAC1
 - Network: Monad Testnet
-- App: https://frontend-wheat-psi-22.vercel.app
+- App: https://fokusle.vercel.app
 
 ## How "Proof" works (anti-fake)
 1. User picks duration, clicks **Lock In**
@@ -36,19 +36,37 @@ Then you build onchain proof: total hours, daily streak, weekly focus, XP, level
 5. State updates onchain. Fake logs impossible without the wallet's signature.
 
 ## Features
-- ✅ Wallet login (sign message, no account)
-- ✅ Commit-reveal verified focus sessions
-- ✅ Onchain progress: hours, streak, weekly, XP, level
-- ✅ Soulbound achievement badges (First Hour → Locked In)
-- ✅ Parallel leaderboard (`getStreaks` multicall)
-- ✅ Lock-In Card with 1-click share to X / Telegram / Discord
-- 🚫 No staking. No pool. No token. (can be added later)
+- Wallet login (sign message, no account needed)
+- Verified focus sessions via wallet signature (no commit, no log)
+- Onchain progress: total hours, streak, weekly focus, XP, level
+- Soulbound achievement badges (First Hour → Locked In) — can't be bought, only earned
+- Parallel leaderboard (`getStreaks` multicall)
+- Lock-In Card with 1-click share to X / Telegram / Discord
+- Onchain identity: display name + profile picture stored in the contract, follows your wallet to any device
+- No staking. No pool. No token.
+
+## Product philosophy
+Fokusle is built for people who want a focus app that feels different from the usual ones — light gamification, not hardcore restriction. The point isn't to be the strictest productivity tool. It's to make showing up daily feel real, and to make that proof portable and yours.
+
+On web, a session is a verified presence: you lock in, the timer runs, you finish, the chain records it. We're honest about the limit — a web app can't tell if you put the phone down and scrolled TikTok on another device. The anti-cheat (signature + nonce) stops fake logs and streak inflation, not lack of discipline. Real activity detection comes in the native version (see Roadmap).
+
+Crypto wallets are still early, but they're heading toward being as normal as a regular wallet. As wallets spread, logging into Fokusle gets easier for everyone — no new account, no password, your focus history travels with your address. The leaderboard and the flex card already create the social layer: you see others, you share your lock-in, you compare streaks.
+
+The schizo card and the badges are on purpose. Attention is the economy now. Making discipline something you actually want to post is the whole point.
+
+## Roadmap
+- v2: native Android + iOS app. Phone-lock and motion detection so a session dies if the device is picked up — real focus verification, not just presence.
+- Grace day on streak: miss one day, streak survives.
+- Focus rooms / buddy system: lock in with a partner, both fail if one bails. Accountability keeps people coming back.
+- 7-day focus chart so progress feels visible, not just a number.
+- Quality-of-focus signal beyond raw duration (deep work vs passive reading) once native telemetry exists.
 
 ## Why this wins
-- **Real proof**, not a database — signature-gated sessions
-- **Monad-native**: parallel streak reads showcase the parallel EVM
-- **Sells identity, not money** — counter-narrative to PnL-flexing
-- Solves a *personal* problem (exact hackathon prompt)
+- Real proof, not a database — signature-gated sessions, replay-proof nonces
+- Monad-native: parallel streak reads showcase the parallel EVM
+- Portable identity: name and picture live onchain, no account silo
+- Sells discipline, not money — counter-narrative to PnL-flexing
+- Solves a problem the builder actually has (exact hackathon prompt)
 
 ---
-Built by ASA MITAKA · Solves a problem I actually have.
+Built by ASA MITAKA. Solves a problem I actually have.
