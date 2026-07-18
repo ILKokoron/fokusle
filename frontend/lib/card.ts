@@ -112,18 +112,12 @@ export function renderFokusCard(d: FokusCardData): string {
     ctx.fillText(val, x + 18, statY + 74);
   });
 
-  // identity (bottom left)
-  const idY = H - 70;
+  // identity (bottom left): username only
+  const idY = H - 48;
   ctx.fillStyle = INK;
   ctx.font = "800 30px 'Helvetica Neue', Arial, sans-serif";
+  ctx.textAlign = "left";
   ctx.fillText(d.handle ? `@${d.handle}` : "anon", M, idY);
-  ctx.fillStyle = DIM;
-  ctx.font = "500 18px 'SFMono-Regular', Consolas, monospace";
-  const short = d.wallet.length > 14 ? `${d.wallet.slice(0, 6)}...${d.wallet.slice(-4)}` : d.wallet;
-  ctx.fillText(short, M, idY + 26);
-  ctx.fillStyle = ACCENT;
-  ctx.font = "600 16px 'Helvetica Neue', Arial, sans-serif";
-  ctx.fillText("MONAD TESTNET · WALLET = IDENTITY", M, H - 32);
 
   // ===== RIGHT PANEL (38%) =====
   const rx = leftW;
