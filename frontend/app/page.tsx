@@ -81,6 +81,22 @@ export default function Home() {
   const [showShare, setShowShare] = useState(false);
   const [customAvatar, setCustomAvatar] = useState<string | null>(null);
 
+  // load saved custom pfp from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem("fokusle_pfp");
+      if (saved) setCustomAvatar(saved);
+    } catch {}
+  }, []);
+
+  const saveCustomAvatar = (dataUrl: string | null) => {
+    setCustomAvatar(dataUrl);
+    try {
+      if (dataUrl) window.localStorage.setItem("fokusle_pfp", dataUrl);
+      else window.localStorage.removeItem("fokusle_pfp");
+    } catch {}
+  };
+
   const { data: progData, refetch: refetchProg } = useReadContract({
     address: FOCUSPROOF_ADDRESS,
     abi: FOCUSPROOF_ABI,
@@ -735,7 +751,7 @@ export default function Home() {
                     </div>
                   </div>
                   <div style={{ ...S.card, textAlign: "center", background: "linear-gradient(160deg, rgba(110,84,255,0.12) 0%, rgba(42,31,102,0.06) 60%, transparent 100%)", border: "1px solid rgba(110,84,255,0.30)" }}>
-                    <img src={nnsProfile?.avatar || `https://api.dicebear.com/7.x/shapes/svg?seed=${address}`} style={{ width: 64, height: 64, borderRadius: 999, margin: "0 auto 10px", display: "block", border: "2px solid rgba(110,84,255,0.5)", boxShadow: "0 6px 18px rgba(110,84,255,0.25)" }} />
+                    <img src={customAvatar || nnsProfile?.avatar || `https://api.dicebear.com/7.x/shapes/svg?seed=${address}`} style={{ width: 64, height: 64, borderRadius: 999, margin: "0 auto 10px", display: "block", border: "2px solid rgba(110,84,255,0.5)", boxShadow: "0 6px 18px rgba(110,84,255,0.25)" }} />
                     <div style={{ fontWeight: 700, fontSize: 17, color: "#fff", fontFamily: "'Space Grotesk', sans-serif" }}>{displayName}</div>
                     <div style={{ color: T.muted, fontSize: 11, marginTop: 2 }}>{address}</div>
                   </div>
@@ -790,21 +806,6 @@ export default function Home() {
                           <button onClick={() => share("tg")} style={{ flex: 1, background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.4)", color: "#fff", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Telegram</button>
                           <button onClick={downloadCard} style={{ flex: 1, background: T.accent, border: "none", color: "#fff", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Download</button>
                         </div>
-                        <div style={{ marginTop: 10, display: "flex", gap: 8, alignItems: "center" }}>
-                          <label style={{ flex: 1, background: "rgba(255,255,255,0.10)", border: "1px solid rgba(255,255,255,0.3)", color: "#fff", padding: "9px 10px", borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: "pointer", textAlign: "center" }}>
-                            {customAvatar ? "Change PFP" : "Use custom PFP"}
-                            <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => {
-                              const f = e.target.files?.[0];
-                              if (!f) return;
-                              const r = new FileReader();
-                              r.onload = () => setCustomAvatar(r.result as string);
-                              r.readAsDataURL(f);
-                            }} />
-                          </label>
-                          {customAvatar && (
-                            <button onClick={() => setCustomAvatar(null)} style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.3)", color: T.muted, padding: "9px 12px", borderRadius: 10, fontSize: 12, cursor: "pointer" }}>Reset</button>
-                          )}
-                        </div>
                       </div>
                     </>
                   )}
@@ -827,6 +828,26 @@ export default function Home() {
                   </div>
                   <div style={S.sectionTitle}><h3 style={S.sectionH3}>Account</h3></div>
                   <div style={S.card}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "13px 0", borderBottom: `1px solid ${T.border}` }}>
+                      <img src={customAvatar || nnsProfile?.avatar || `https://api.dicebear.com/7.x/shapes/svg?seed=${address}`} style={{ width: 52, height: 52, borderRadius: 999, border: "2px solid rgba(110,84,255,0.5)", objectFit: "cover" }} />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600 }}>Profile picture</div>
+                        <div style={{ fontSize: 11, color: T.muted }}>Custom image saved on this device</div>
+                      </div>
+                      <label style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.3)", color: "#fff", padding: "8px 12px", borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                        {customAvatar ? "Change" : "Upload"}
+                        <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (!f) return;
+                          const r = new FileReader();
+                          r.onload = () => saveCustomAvatar(r.result as string);
+                          r.readAsDataURL(f);
+                        }} />
+                      </label>
+                      {customAvatar && (
+                        <button onClick={() => saveCustomAvatar(null)} style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.3)", color: T.muted, padding: "8px 12px", borderRadius: 10, fontSize: 12, cursor: "pointer" }}>Reset</button>
+                      )}
+                    </div>
                     <div style={{ display: "flex", justifyContent: "space-between", padding: "13px 0", borderBottom: `1px solid ${T.border}`, fontSize: 13 }}><span>Nickname</span><span style={{ color: T.muted }}>{(nicknameData as string) || "Not set"}</span></div>
                     <div style={{ display: "flex", justifyContent: "space-between", padding: "13px 0", fontSize: 13 }}><span style={{ color: "#ff9b9b" }}>Sign out</span><span style={{ color: "#ff9b9b", cursor: "pointer" }} onClick={() => setAuthed(false)}>→</span></div>
                   </div>
