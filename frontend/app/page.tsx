@@ -425,6 +425,24 @@ export default function Home() {
     setMsg("🔒 Locked in. Focus now.");
   };
 
+  // Leaving the app (tab switch / minimize / close) while a session is running
+  // = automatic failure. This is the core "Proof of Discipline" guarantee:
+  // you cannot walk away and still claim the focus.
+  const failSession = useCallback(() => {
+    setStarted(false);
+    setRunning(false);
+    setLeft(dur);
+    setMsg("❌ Session failed — you left. Discipline means staying.");
+  }, [dur]);
+
+  useEffect(() => {
+    const onVis = () => {
+      if (document.hidden && running) failSession();
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, [running, failSession]);
+
   const logSession = async () => {
     if (!address) return;
     const focused = BigInt(dur - left);
@@ -626,7 +644,7 @@ export default function Home() {
                         </button>
                       </div>
                     )}
-                    <div style={{ textAlign: "center", fontSize: 10, color: "rgba(255,255,255,0.6)", marginTop: 10, fontFamily: "'Roboto Mono', monospace" }}>60 min = 100%, always · Finish = onchain fee</div>
+                    <div style={{ textAlign: "center", fontSize: 10, color: T.muted, marginTop: 10, fontFamily: "'Roboto Mono', monospace" }}>60 min = 100%, always · Finish = onchain fee<br />Leaving the tab = automatic fail · that's the discipline</div>
                   </div>
 
                   <div style={S.sectionTitle}><h3 style={S.sectionH3}>Top streaks</h3><span style={{ fontSize: 11, color: T.accent, fontWeight: 600, cursor: "pointer" }} onClick={() => setTab("progress")}>See all</span></div>
