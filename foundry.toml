@@ -12,4 +12,4 @@ monad_testnet = "https://testnet-rpc.monad.xyz"
 monad_mainnet = "https://rpc.monad.xyz"
 
 [etherscan]
-monad_testnet = { key = "${MONAD_EXPLORER_API_KEY}", url = "https://testnet.monadexplorer.com/api" }
+monad_testnet = { key = "${MONAD_EXPLORER_API_KEY}", url = "https://testnet.monadvision.com/api" }

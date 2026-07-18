@@ -815,7 +815,7 @@ export default function Home() {
                   </div>
                   <div style={S.sectionTitle}><h3 style={S.sectionH3}>About</h3></div>
                   <div style={S.card}>
-                    <div style={{ display: "flex", justifyContent: "space-between", padding: "13px 0", borderBottom: `1px solid ${T.border}`, fontSize: 13 }}><span>Contract</span><a href={`https://testnet.monadexplorer.com/address/${FOCUSPROOF_ADDRESS}`} target="_blank" style={{ color: T.accent, textDecoration: "none" }}>View on Explorer</a></div>
+                    <div style={{ display: "flex", justifyContent: "space-between", padding: "13px 0", borderBottom: `1px solid ${T.border}`, fontSize: 13 }}><span>Contract</span><a href={`https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`} target="_blank" style={{ color: T.accent, textDecoration: "none" }}>View on Explorer</a></div>
                     <div style={{ display: "flex", justifyContent: "space-between", padding: "13px 0", fontSize: 13 }}><span>Version</span><span style={{ color: T.muted }}>v1.0.0</span></div>
                   </div>
                 </>

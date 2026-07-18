@@ -23,8 +23,8 @@ Then you build onchain proof: total hours, daily streak, weekly focus, XP, level
 - **Chain**: Monad Testnet (chainId 10143)
 
 ## Contract
-- Address: `0x08F71A7564336D176563ED971704EEAd37229D6b`
-- Explorer: https://testnet.monadexplorer.com/address/0x08F71A7564336D176563ED971704EEAd37229D6b
+- Address: `0xDBb6e0c58AEA9E197CB0E7A3cb8d8dE6a62F0B49`
+- Explorer: https://testnet.monadvision.com/address/0xDBb6e0c58AEA9E197CB0E7A3cb8d8dE6a62F0B49
 - Network: Monad Testnet
 - App: https://frontend-wheat-psi-22.vercel.app
 
