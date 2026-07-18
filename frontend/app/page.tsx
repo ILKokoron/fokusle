@@ -681,7 +681,7 @@ export default function Home() {
                     ) : (
                       (gachaPullsData as bigint[]).map((id, i) => (
                         <div key={i} style={{ ...S.feedItem, borderBottom: i === (gachaPullsData as bigint[]).length - 1 ? "none" : S.feedItem.borderBottom }}>
-                          <div><b style={{ fontSize: 13 }}>{MONANIMAL_NAMES[Number(id)]}</b></div>
+                          <div><b style={{ fontSize: 13 }}>{MONANIMAL_NAMES[Number(id)] || `Monanimal #${Number(id)}`}</b></div>
                         </div>
                       ))
                     )}
@@ -749,7 +749,7 @@ export default function Home() {
                         <div style={{ color: "#fff", fontWeight: 700, letterSpacing: 2, fontSize: 12 }}>LOCKED IN</div>
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginTop: 14 }}>
                           <div><div style={{ fontSize: 18, fontWeight: 700, color: "#fff", fontFamily: "'Roboto Mono', monospace" }}>{cardToday}</div><div style={{ fontSize: 11, color: "rgba(255,255,255,0.75)" }}>Today</div></div>
-                          <div><div style={{ fontSize: 18, fontWeight: 700, color: "#fff", fontFamily: "'Roboto Mono', monospace" }}>{prog.streak.toString()} Days</div><div style={{ fontSize: 11, color: "rgba(255,255,255,0.75)" }}>Streak</div></div>
+                          <div><div style={{ fontSize: 18, fontWeight: 700, color: "#fff", fontFamily: "'Roboto Mono', monospace" }}>{prog ? `${prog.streak}d` : "0"} Days</div><div style={{ fontSize: 11, color: "rgba(255,255,255,0.75)" }}>Streak</div></div>
                         </div>
                         <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
                           <button onClick={() => share("x")} style={{ flex: 1, background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.4)", color: "#fff", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Share X</button>
