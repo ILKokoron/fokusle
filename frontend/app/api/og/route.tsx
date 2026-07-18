@@ -1,4 +1,6 @@
 import { ImageResponse } from "next/og";
+import fs from "fs";
+import path from "path";
 
 export const runtime = "nodejs";
 
@@ -19,12 +21,13 @@ export async function GET(req: Request) {
   const themeKey = searchParams.get("theme") ?? "purple";
   const t = THEMES[themeKey] ?? THEMES.purple;
 
-  let fontData: ArrayBuffer;
+  // built-in next/og font
+  const fontPath = path.join(process.cwd(), "node_modules/next/dist/compiled/@vercel/og/noto-sans-v27-latin-regular.ttf");
+  let fontData: Buffer;
   try {
-    const f = await fetch("https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMa1ZL7.woff");
-    fontData = await f.arrayBuffer();
+    fontData = fs.readFileSync(fontPath);
   } catch {
-    fontData = new ArrayBuffer(0);
+    fontData = Buffer.alloc(0);
   }
 
   return new ImageResponse(
@@ -38,7 +41,7 @@ export async function GET(req: Request) {
           backgroundImage:
             "linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)",
           backgroundSize: "40px 40px",
-          fontFamily: "Inter, sans-serif",
+          fontFamily: "Noto Sans, sans-serif",
           color: "#fff",
         }}
       >
@@ -112,7 +115,7 @@ export async function GET(req: Request) {
     {
       width: 1200,
       height: 630,
-      fonts: fontData.byteLength > 0 ? [{ name: "Inter", data: fontData, weight: 400, style: "normal" }] : undefined,
+      fonts: fontData.byteLength > 0 ? [{ name: "Noto Sans", data: fontData, weight: 400, style: "normal" }] : undefined,
     }
   );
 }
