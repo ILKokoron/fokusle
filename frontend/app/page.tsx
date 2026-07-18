@@ -79,6 +79,7 @@ export default function Home() {
   const [left, setLeft] = useState(60 * 60);
   const [logging, setLogging] = useState(false);
   const [showShare, setShowShare] = useState(false);
+  const [customAvatar, setCustomAvatar] = useState<string | null>(null);
 
   const { data: progData, refetch: refetchProg } = useReadContract({
     address: FOCUSPROOF_ADDRESS,
@@ -453,13 +454,13 @@ export default function Home() {
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, "_blank");
   };
 
-  const downloadCard = () => {
+  const downloadCard = async () => {
     if (!prog) return;
     const bgs: CardBadge[] = Object.values(BADGE_META).map((b, i) => ({
       name: b.name,
       got: badges.includes(i + 1),
     }));
-    const dataUrl = renderFokusCard({
+    const dataUrl = await renderFokusCard({
       handle: displayName,
       wallet: address || "",
       weeklySeconds: prog.weeklySeconds,
@@ -468,6 +469,7 @@ export default function Home() {
       xp: prog.xp,
       level: prog.level,
       badges: bgs,
+      avatarUrl: customAvatar || undefined,
     });
     const blob = dataUrlToBlob(dataUrl);
     const url = URL.createObjectURL(blob);
@@ -787,6 +789,21 @@ export default function Home() {
                           <button onClick={() => share("x")} style={{ flex: 1, background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.4)", color: "#fff", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Share X</button>
                           <button onClick={() => share("tg")} style={{ flex: 1, background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.4)", color: "#fff", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Telegram</button>
                           <button onClick={downloadCard} style={{ flex: 1, background: T.accent, border: "none", color: "#fff", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Download</button>
+                        </div>
+                        <div style={{ marginTop: 10, display: "flex", gap: 8, alignItems: "center" }}>
+                          <label style={{ flex: 1, background: "rgba(255,255,255,0.10)", border: "1px solid rgba(255,255,255,0.3)", color: "#fff", padding: "9px 10px", borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: "pointer", textAlign: "center" }}>
+                            {customAvatar ? "Change PFP" : "Use custom PFP"}
+                            <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => {
+                              const f = e.target.files?.[0];
+                              if (!f) return;
+                              const r = new FileReader();
+                              r.onload = () => setCustomAvatar(r.result as string);
+                              r.readAsDataURL(f);
+                            }} />
+                          </label>
+                          {customAvatar && (
+                            <button onClick={() => setCustomAvatar(null)} style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.3)", color: T.muted, padding: "9px 12px", borderRadius: 10, fontSize: 12, cursor: "pointer" }}>Reset</button>
+                          )}
                         </div>
                       </div>
                     </>
