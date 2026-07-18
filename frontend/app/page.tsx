@@ -77,6 +77,7 @@ export default function Home() {
   const [durMin, setDurMin] = useState(60);
   const [dur, setDur] = useState(60 * 60);
   const [left, setLeft] = useState(60 * 60);
+  const [sessionStart, setSessionStart] = useState(0); // wall-clock ms when session started (proof of presence)
   const [logging, setLogging] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [showWalletPicker, setShowWalletPicker] = useState(false);
@@ -422,6 +423,7 @@ export default function Home() {
     setStarted(true);
     setRunning(true);
     setLeft(dur);
+    setSessionStart(Date.now());
     setMsg("🔒 Locked in. Focus now.");
   };
 
@@ -445,16 +447,23 @@ export default function Home() {
 
   const logSession = async () => {
     if (!address) return;
-    const focused = BigInt(dur - left);
+    // Wall-clock elapsed (real proof of presence, not the local countdown
+    // which can be tampered). Capped at committed duration.
+    const elapsed = Math.max(0, Math.floor((Date.now() - sessionStart) / 1000));
+    const focused = BigInt(Math.min(elapsed, dur));
     if (focused <= 0n) { setMsg("⚠️ Timer belum selesai."); return; }
     setLogging(true);
     setMsg("");
     try {
+      // Wallet signs (address, secondsFocused) — attests THIS wallet focused
+      // THIS long. Contract verifies, so data is trustworthy & non-fakeable.
+      const hash = keccak256(encodePacked(["address", "uint256"], [address as `0x${string}`, focused]));
+      const sig = await signMessageAsync({ message: { raw: hash as `0x${string}` } } as any);
       await writeContractAsync({
         address: FOCUSPROOF_ADDRESS,
         abi: FOCUSPROOF_ABI,
         functionName: "logFocus",
-        args: [focused],
+        args: [focused, sig],
         account: address,
         chain: monadTestnet,
       } as any);
@@ -464,7 +473,7 @@ export default function Home() {
       setRunning(false);
       setStarted(false);
       setShowShare(true); // show share modal AFTER successful log
-      setMsg("✅ Session logged onchain.");
+      setMsg("✅ Session logged onchain (signed proof).");
     } catch (e: any) {
       setMsg("❌ " + (e?.shortMessage || e?.message));
     } finally {
@@ -529,17 +538,17 @@ export default function Home() {
   const targetPct = fmtHourPct(dur);
 
   const S = {
-    device: { width: 390, minHeight: 780, background: theme === "dark" ? "rgba(14,9,28,0.72)" : "rgba(247,245,255,0.85)", backdropFilter: "blur(14px)", color: T.text, borderRadius: 28, overflow: "hidden", margin: "20px auto", fontFamily: "'Inter', -apple-system, sans-serif", position: "relative" as const, border: `1px solid ${T.border}`, boxShadow: "0 20px 60px rgba(0,0,0,0.45)" },
+    device: { width: 390, minHeight: 780, background: theme === "dark" ? "rgba(14,9,28,0.72)" : "rgba(247,245,255,0.85)", backdropFilter: "blur(14px)", color: T.text, borderRadius: 28, overflow: "hidden", margin: "20px auto", fontFamily: "var(--font-inter), -apple-system, sans-serif", position: "relative" as const, border: `1px solid ${T.border}`, boxShadow: "0 20px 60px rgba(0,0,0,0.45)" },
     screen: { padding: "16px 20px 90px", minHeight: 700 },
     hero: { background: "linear-gradient(160deg, rgba(110,84,255,0.20) 0%, rgba(42,31,102,0.10) 50%, transparent 100%)", border: "1px solid rgba(110,84,255,0.35)", borderRadius: 24, padding: "22px 20px 26px", marginBottom: 16, boxShadow: "0 8px 30px rgba(110,84,255,0.10)" },
     card: { background: T.card, border: `1px solid ${T.border}`, borderRadius: 18, padding: 16, marginBottom: 12, backdropFilter: "blur(6px)" },
     sectionTitle: { display: "flex", justifyContent: "space-between", alignItems: "center", margin: "18px 0 10px" } as const,
-    sectionH3: { fontSize: 13, fontWeight: 700, margin: 0, fontFamily: "'Space Grotesk', sans-serif", letterSpacing: 0.3 } as const,
+    sectionH3: { fontSize: 13, fontWeight: 700, margin: 0, fontFamily: "var(--font-grotesk), sans-serif", letterSpacing: 0.3 } as const,
     chip: (active: boolean) => ({ flex: 1, textAlign: "center" as const, background: active ? "#fff" : GHOST.bg, color: active ? T.accent : GHOST.text, fontSize: 12, fontWeight: 600, padding: "8px 0 6px", borderRadius: 14, cursor: "pointer", border: "none" }),
     tabbar: { position: "absolute" as const, bottom: 0, left: 0, right: 0, height: 64, background: T.card, borderTop: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "space-around", backdropFilter: "blur(10px)" },
-    tab: (active: boolean) => ({ color: active ? "#fff" : T.muted, background: active ? "linear-gradient(150deg,#8b7bff,#6E54FF)" : "transparent", fontSize: 12, fontWeight: 700, padding: "8px 16px", borderRadius: 10, cursor: "pointer", border: "none", fontFamily: "'Inter', sans-serif", boxShadow: active ? "0 4px 14px rgba(110,84,255,0.35)" : "none" }),
+    tab: (active: boolean) => ({ color: active ? "#fff" : T.muted, background: active ? "linear-gradient(150deg,#8b7bff,#6E54FF)" : "transparent", fontSize: 12, fontWeight: 700, padding: "8px 16px", borderRadius: 10, cursor: "pointer", border: "none", fontFamily: "var(--font-inter), sans-serif", boxShadow: active ? "0 4px 14px rgba(110,84,255,0.35)" : "none" }),
     feedItem: { display: "flex", alignItems: "center", gap: 12, padding: "12px 0", borderBottom: `1px solid ${T.border}` },
-    streakTag: { marginLeft: "auto", background: T.card2, color: T.accent, fontSize: 11, fontWeight: 700, padding: "5px 10px", borderRadius: 999, fontFamily: "'Roboto Mono', monospace" },
+    streakTag: { marginLeft: "auto", background: T.card2, color: T.accent, fontSize: 11, fontWeight: 700, padding: "5px 10px", borderRadius: 999, fontFamily: "var(--font-mono), monospace" },
   };
 
   return (
@@ -548,8 +557,8 @@ export default function Home() {
         <div style={S.screen}>
           {!isConnected ? (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: 640, textAlign: "center", padding: "0 16px" }}>
-              <div style={{ width: 76, height: 76, borderRadius: 22, background: "linear-gradient(150deg,#8b7bff,#6E54FF)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 32, color: "#fff", fontFamily: "'Space Grotesk', sans-serif", boxShadow: "0 12px 30px rgba(110,84,255,0.4)", marginBottom: 18 }}>F</div>
-              <h2 style={{ fontSize: 24, margin: "0 0 6px", fontFamily: "'Space Grotesk', sans-serif", color: T.text }}>FokusLe</h2>
+              <div style={{ width: 76, height: 76, borderRadius: 22, background: "linear-gradient(150deg,#8b7bff,#6E54FF)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 32, color: "#fff", fontFamily: "var(--font-grotesk), sans-serif", boxShadow: "0 12px 30px rgba(110,84,255,0.4)", marginBottom: 18 }}>F</div>
+              <h2 style={{ fontSize: 24, margin: "0 0 6px", fontFamily: "var(--font-grotesk), sans-serif", color: T.text }}>FokusLe</h2>
               <p style={{ color: T.muted, fontSize: 13, margin: "0 0 30px", lineHeight: 1.5 }}>Proof of Focus. Proof of Discipline.<br />Connect your wallet to start a session.</p>
               <button onClick={connectWallet} style={{ width: "100%", background: "linear-gradient(150deg,#8b7bff,#6E54FF)", color: "#fff", border: "none", padding: "14px 24px", borderRadius: 14, fontWeight: 700, fontSize: 15, cursor: "pointer", boxShadow: "0 8px 24px rgba(110,84,255,0.35)" }}>
                 {isConnectPending ? "Connecting..." : "Connect Wallet"}
@@ -573,8 +582,8 @@ export default function Home() {
                   <div style={S.hero}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <div style={{ width: 26, height: 26, borderRadius: 8, background: "linear-gradient(150deg,#8b7bff,#6E54FF)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14, color: "#fff", fontFamily: "'Space Grotesk', sans-serif" }}>F</div>
-                        <div style={{ fontSize: 15, fontWeight: 700, color: T.text, fontFamily: "'Space Grotesk', sans-serif" }}>FokusLe</div>
+                        <div style={{ width: 26, height: 26, borderRadius: 8, background: "linear-gradient(150deg,#8b7bff,#6E54FF)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14, color: "#fff", fontFamily: "var(--font-grotesk), sans-serif" }}>F</div>
+                        <div style={{ fontSize: 15, fontWeight: 700, color: T.text, fontFamily: "var(--font-grotesk), sans-serif" }}>FokusLe</div>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, background: GHOST.bg, borderRadius: 999, padding: "5px 10px 5px 6px" }}>
                         <div style={{ width: 7, height: 7, borderRadius: 999, background: "#4ADE80" }} />
@@ -596,7 +605,7 @@ export default function Home() {
                           strokeLinecap="round" transform="rotate(-90 100 100)" style={{ transition: "stroke-dashoffset 1s linear", filter: "drop-shadow(0 0 6px rgba(110,84,255,0.5))" }} />
                       </svg>
                       <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", textAlign: "center" }}>
-                        <div style={{ fontSize: 40, fontWeight: 700, color: "#fff", fontFamily: "'Roboto Mono', monospace" }}>
+                        <div style={{ fontSize: 40, fontWeight: 700, color: "#fff", fontFamily: "var(--font-mono), monospace" }}>
                           {running ? `${sessionPct}%` : "0%"}
                         </div>
                         <div style={{ fontSize: 11, color: "rgba(255,255,255,0.8)", textTransform: "uppercase", letterSpacing: 1, marginTop: 2 }}>
@@ -620,7 +629,7 @@ export default function Home() {
                             setDur(m * 60);
                             setLeft(m * 60);
                           }}
-                          style={{ width: 64, background: GHOST.bg, border: `1px solid ${T.border}`, color: GHOST.text, borderRadius: 8, padding: "6px 8px", fontSize: 14, fontFamily: "'Roboto Mono', monospace", textAlign: "center" }}
+                          style={{ width: 64, background: GHOST.bg, border: `1px solid ${T.border}`, color: GHOST.text, borderRadius: 8, padding: "6px 8px", fontSize: 14, fontFamily: "var(--font-mono), monospace", textAlign: "center" }}
                         />
                         <span style={{ fontSize: 12, color: T.muted }}>min</span>
                       </div>
@@ -644,7 +653,7 @@ export default function Home() {
                         </button>
                       </div>
                     )}
-                    <div style={{ textAlign: "center", fontSize: 10, color: T.muted, marginTop: 10, fontFamily: "'Roboto Mono', monospace" }}>60 min = 100%, always · Finish = onchain fee<br />Leaving the tab = automatic fail · that's the discipline</div>
+                    <div style={{ textAlign: "center", fontSize: 10, color: T.muted, marginTop: 10, fontFamily: "var(--font-mono), monospace" }}>{durMin} min = 100%, always · Finish = onchain fee<br />Leaving the tab = automatic fail · that's the discipline</div>
                   </div>
 
                   <div style={S.sectionTitle}><h3 style={S.sectionH3}>Top streaks</h3><span style={{ fontSize: 11, color: T.accent, fontWeight: 600, cursor: "pointer" }} onClick={() => setTab("progress")}>See all</span></div>
@@ -672,9 +681,9 @@ export default function Home() {
               {tab === "progress" && prog && (
                 <>
                   <div style={{ ...S.card, display: "flex", gap: 10 }}>
-                    <div style={{ flex: 1, textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700, fontFamily: "'Roboto Mono', monospace" }}>{fmtHourPct(Number(prog.totalSeconds))}%</div><div style={{ fontSize: 10, color: T.muted }}>Total ({fmt(prog.totalSeconds)})</div></div>
-                    <div style={{ flex: 1, textAlign: "center", borderLeft: `1px solid ${T.border}` }}><div style={{ fontSize: 18, fontWeight: 700, fontFamily: "'Roboto Mono', monospace" }}>{String(prog.sessionCount)}</div><div style={{ fontSize: 10, color: T.muted }}>Sessions</div></div>
-                    <div style={{ flex: 1, textAlign: "center", borderLeft: `1px solid ${T.border}` }}><div style={{ fontSize: 18, fontWeight: 700, fontFamily: "'Roboto Mono', monospace" }}>{insights && insights.avgSessionMin ? `${fmtHourPct(insights.avgSessionMin * 60)}%` : "-"}</div><div style={{ fontSize: 10, color: T.muted }}>Avg / session</div></div>
+                    <div style={{ flex: 1, textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 700, fontFamily: "var(--font-mono), monospace" }}>{fmtHourPct(Number(prog.totalSeconds))}%</div><div style={{ fontSize: 10, color: T.muted }}>Total ({fmt(prog.totalSeconds)})</div></div>
+                    <div style={{ flex: 1, textAlign: "center", borderLeft: `1px solid ${T.border}` }}><div style={{ fontSize: 18, fontWeight: 700, fontFamily: "var(--font-mono), monospace" }}>{String(prog.sessionCount)}</div><div style={{ fontSize: 10, color: T.muted }}>Sessions</div></div>
+                    <div style={{ flex: 1, textAlign: "center", borderLeft: `1px solid ${T.border}` }}><div style={{ fontSize: 18, fontWeight: 700, fontFamily: "var(--font-mono), monospace" }}>{insights && insights.avgSessionMin ? `${fmtHourPct(insights.avgSessionMin * 60)}%` : "-"}</div><div style={{ fontSize: 10, color: T.muted }}>Avg / session</div></div>
                   </div>
 
                   <div style={S.sectionTitle}><h3 style={S.sectionH3}>Last 7 days</h3></div>
@@ -688,7 +697,7 @@ export default function Home() {
                           <div style={{ flex: 1, height: 8, background: T.card2, borderRadius: 999, overflow: "hidden" }}>
                             <div style={{ height: "100%", width: `${Math.min(100, pct)}%`, background: T.accent, borderRadius: 999 }} />
                           </div>
-                          <div style={{ width: 40, fontSize: 11, textAlign: "right", color: T.muted, fontFamily: "'Roboto Mono', monospace" }}>{pct}%</div>
+                          <div style={{ width: 40, fontSize: 11, textAlign: "right", color: T.muted, fontFamily: "var(--font-mono), monospace" }}>{pct}%</div>
                         </div>
                       );
                     }) : <div style={{ color: T.muted, fontSize: 12 }}>Loading…</div>}
@@ -731,14 +740,14 @@ export default function Home() {
               {tab === "pet" && (
                 <>
                   <div style={{ ...S.card, textAlign: "center", padding: "36px 20px" }}>
-                    <h2 style={{ fontSize: 17, margin: "0 0 8px", fontFamily: "'Space Grotesk', sans-serif" }}>Focus Pet</h2>
+                    <h2 style={{ fontSize: 17, margin: "0 0 8px", fontFamily: "var(--font-grotesk), sans-serif" }}>Focus Pet</h2>
                     <p style={{ color: T.muted, fontSize: 13, lineHeight: 1.6, maxWidth: 260, margin: "0 auto" }}>The companion that grows and reacts to your streak is still coming. Gacha pulls are live now, ahead of it.</p>
                   </div>
 
                   <div style={S.card}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
                       <b style={{ fontSize: 13 }}>Monanimal Gacha</b>
-                      <span style={{ marginLeft: "auto", fontSize: 11, color: T.muted, fontFamily: "'Roboto Mono', monospace" }}>{prog ? String(prog.xp) : 0} XP</span>
+                      <span style={{ marginLeft: "auto", fontSize: 11, color: T.muted, fontFamily: "var(--font-mono), monospace" }}>{prog ? String(prog.xp) : 0} XP</span>
                     </div>
                     <p style={{ color: T.muted, fontSize: 12, lineHeight: 1.6, margin: "0 0 14px" }}>
                       Spend 50 XP for a cosmetic pull. Purely cosmetic — no gameplay advantage, not a tradeable token.
@@ -784,15 +793,15 @@ export default function Home() {
                   </div>
                   <div style={{ ...S.card, textAlign: "center", background: "linear-gradient(160deg, rgba(110,84,255,0.12) 0%, rgba(42,31,102,0.06) 60%, transparent 100%)", border: "1px solid rgba(110,84,255,0.30)" }}>
                     <img src={customAvatar || nnsProfile?.avatar || `https://api.dicebear.com/7.x/shapes/svg?seed=${address}`} style={{ width: 64, height: 64, borderRadius: 999, margin: "0 auto 10px", display: "block", border: "2px solid rgba(110,84,255,0.5)", boxShadow: "0 6px 18px rgba(110,84,255,0.25)" }} />
-                    <div style={{ fontWeight: 700, fontSize: 17, color: T.text, fontFamily: "'Space Grotesk', sans-serif" }}>{displayName}</div>
+                    <div style={{ fontWeight: 700, fontSize: 17, color: T.text, fontFamily: "var(--font-grotesk), sans-serif" }}>{displayName}</div>
                     <div style={{ color: T.muted, fontSize: 11, marginTop: 2 }}>{address}</div>
                   </div>
 
                   {prog && (
                     <div style={S.card}>
                       <div style={{ display: "flex", gap: 10 }}>
-                        <div style={{ flex: 1, textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 700, fontFamily: "'Roboto Mono', monospace" }}>{fmtHourPct(Number(prog.totalSeconds))}%</div><div style={{ fontSize: 10, color: T.muted }}>Total ({fmt(prog.totalSeconds)})</div></div>
-                        <div style={{ flex: 1, textAlign: "center", borderLeft: `1px solid ${T.border}` }}><div style={{ fontSize: 16, fontWeight: 700, fontFamily: "'Roboto Mono', monospace" }}>{String(prog.sessionCount)}</div><div style={{ fontSize: 10, color: T.muted }}>Sessions</div></div>
+                        <div style={{ flex: 1, textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 700, fontFamily: "var(--font-mono), monospace" }}>{fmtHourPct(Number(prog.totalSeconds))}%</div><div style={{ fontSize: 10, color: T.muted }}>Total ({fmt(prog.totalSeconds)})</div></div>
+                        <div style={{ flex: 1, textAlign: "center", borderLeft: `1px solid ${T.border}` }}><div style={{ fontSize: 16, fontWeight: 700, fontFamily: "var(--font-mono), monospace" }}>{String(prog.sessionCount)}</div><div style={{ fontSize: 10, color: T.muted }}>Sessions</div></div>
                       </div>
                     </div>
                   )}
@@ -805,7 +814,7 @@ export default function Home() {
                       <>
                         <div style={{ display: "flex", justifyContent: "space-between", padding: "9px 0", borderBottom: `1px solid ${T.border}`, fontSize: 13 }}><span style={{ color: T.muted }}>Most active time</span><span style={{ fontWeight: 600 }}>{insights.mostActivePeriod}</span></div>
                         <div style={{ display: "flex", justifyContent: "space-between", padding: "9px 0", borderBottom: `1px solid ${T.border}`, fontSize: 13 }}><span style={{ color: T.muted }}>Most consistent day</span><span style={{ fontWeight: 600 }}>{insights.mostActiveDay}</span></div>
-                        <div style={{ display: "flex", justifyContent: "space-between", padding: "9px 0", fontSize: 13 }}><span style={{ color: T.muted }}>Longest session</span><span style={{ fontWeight: 600, fontFamily: "'Roboto Mono', monospace" }}>{fmtHourPct(insights.longestSessionMin * 60)}%</span></div>
+                        <div style={{ display: "flex", justifyContent: "space-between", padding: "9px 0", fontSize: 13 }}><span style={{ color: T.muted }}>Longest session</span><span style={{ fontWeight: 600, fontFamily: "var(--font-mono), monospace" }}>{fmtHourPct(insights.longestSessionMin * 60)}%</span></div>
                       </>
                     )}
                   </div>
@@ -816,8 +825,8 @@ export default function Home() {
                       <div style={{ ...S.card, backgroundImage: T.grad, border: "none" }}>
                         <div style={{ color: T.text, fontWeight: 700, letterSpacing: 2, fontSize: 12 }}>LOCKED IN</div>
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginTop: 14 }}>
-                          <div><div style={{ fontSize: 18, fontWeight: 700, color: T.text, fontFamily: "'Roboto Mono', monospace" }}>{cardToday}</div><div style={{ fontSize: 11, color: T.muted }}>Today</div></div>
-                          <div><div style={{ fontSize: 18, fontWeight: 700, color: T.text, fontFamily: "'Roboto Mono', monospace" }}>{prog ? `${prog.streak}d` : "0"} Days</div><div style={{ fontSize: 11, color: T.muted }}>Streak</div></div>
+                          <div><div style={{ fontSize: 18, fontWeight: 700, color: T.text, fontFamily: "var(--font-mono), monospace" }}>{cardToday}</div><div style={{ fontSize: 11, color: T.muted }}>Today</div></div>
+                          <div><div style={{ fontSize: 18, fontWeight: 700, color: T.text, fontFamily: "var(--font-mono), monospace" }}>{prog ? `${prog.streak}d` : "0"} Days</div><div style={{ fontSize: 11, color: T.muted }}>Streak</div></div>
                         </div>
                         <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
                           <button onClick={() => share("x")} style={{ flex: 1, background: GHOST.bg, border: `1px solid ${GHOST.border}`, color: GHOST.text, padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Share X</button>
@@ -902,7 +911,7 @@ export default function Home() {
         {showWalletPicker && (
           <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
             <div style={{ width: 300, background: T.card, border: `1px solid ${T.border}`, borderRadius: 18, padding: 20 }}>
-              <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4, fontFamily: "'Space Grotesk', sans-serif" }}>Connect a wallet</div>
+              <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4, fontFamily: "var(--font-grotesk), sans-serif" }}>Connect a wallet</div>
               <p style={{ color: T.muted, fontSize: 12, margin: "0 0 14px" }}>Pick how you want to sign in.</p>
               {WALLET_PICKER.map((w) => (
                 <button
@@ -927,7 +936,7 @@ export default function Home() {
         {showShare && (
           <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
             <div style={{ width: 300, background: T.card, border: `1px solid ${T.border}`, borderRadius: 18, padding: 20, textAlign: "center" }}>
-              <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 6, fontFamily: "'Space Grotesk', sans-serif" }}>Session locked in</div>
+              <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 6, fontFamily: "var(--font-grotesk), sans-serif" }}>Session locked in</div>
               <p style={{ color: T.muted, fontSize: 12, margin: "0 0 16px", lineHeight: 1.5 }}>Your flex card is ready. Share it or keep it to yourself.</p>
               <button onClick={() => { share("x"); setShowShare(false); }} style={{ width: "100%", background: T.accent, color: "#fff", border: "none", padding: 13, borderRadius: 12, fontWeight: 700, fontSize: 14, cursor: "pointer", marginBottom: 8 }}>
                 Share to X

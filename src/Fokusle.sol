@@ -87,8 +87,17 @@ contract Fokusle {
 
     /// @notice Log a completed focus session directly. No commit step required —
     ///         the frontend runs a local timer and only hits the chain on finish.
-    function logFocus(uint256 secondsFocused) external {
+    ///         The wallet MUST sign keccak256(addr, secondsFocused) (EIP-191) so the
+    ///         session is attestable: only the owner of the wallet that focused can
+    ///         log it, and the duration is signed — this is the anti-fake proof of
+    ///         presence that makes Fokusle's data trustworthy.
+    function logFocus(uint256 secondsFocused, bytes calldata sig) external {
         require(secondsFocused > 0 && secondsFocused <= 86400, "Fokusle: bad duration");
+
+        // Verify the caller signed (addr, secondsFocused) — proves the session
+        // was attested by the wallet that actually focused, not faked client-side.
+        bytes32 h = keccak256(abi.encodePacked(msg.sender, secondsFocused));
+        require(_recover(h, sig) == msg.sender, "Fokusle: bad signature");
 
         FocusData storage f = focus[msg.sender];
 
