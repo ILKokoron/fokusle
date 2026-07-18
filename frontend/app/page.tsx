@@ -6,6 +6,7 @@ import { useAccount, useReadContract, useWriteContract, useSignMessage, usePubli
 import { keccak256, encodePacked, encodeAbiParameters, parseAbiParameters } from "viem";
 import { FOCUSPROOF_ADDRESS, FOCUSPROOF_ABI, BADGE_META, MONANIMAL_NAMES } from "../lib/abi";
 import { renderFokusCard, dataUrlToBlob, type CardBadge } from "../lib/card";
+import { ErrorBoundary } from "./ErrorBoundary";
 import { monadTestnet } from "../lib/wagmi";
 
 type Progress = {
@@ -493,6 +494,7 @@ export default function Home() {
     <div style={{ background: theme === "dark" ? "#0a0710" : "#eee9ff", minHeight: "100vh", padding: "20px 0" }}>
       <div style={S.device as any}>
         <div style={S.screen}>
+          <ErrorBoundary>
           {!isConnected ? (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: 600, textAlign: "center", padding: "0 10px" }}>
               <h2 style={{ fontSize: 18, margin: "0 0 8px", fontFamily: "'Space Grotesk', sans-serif" }}>FokusLe</h2>
@@ -787,7 +789,8 @@ export default function Home() {
               )}
             </>
           )}
-        </div>
+          </ErrorBoundary>
+          </div>
 
         {isConnected && authed && (
           <div style={S.tabbar}>
