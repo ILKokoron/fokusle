@@ -60,8 +60,9 @@ export default function Home() {
 
   const [running, setRunning] = useState(false);
   const [committed, setCommitted] = useState(false);
-  const [dur, setDur] = useState(25 * 60);
-  const [left, setLeft] = useState(25 * 60);
+  const [durMin, setDurMin] = useState(60);
+  const [dur, setDur] = useState(60 * 60);
+  const [left, setLeft] = useState(60 * 60);
   const [logging, setLogging] = useState(false);
   const [showShare, setShowShare] = useState(false);
 
@@ -421,16 +422,21 @@ export default function Home() {
     setLogging(true);
     setMsg("");
     try {
-      writeContract({
+      await writeContractAsync({
         address: FOCUSPROOF_ADDRESS,
         abi: FOCUSPROOF_ABI,
         functionName: "logFocus",
         args: [focused],
         account: address,
         chain: monadTestnet,
-      });
-      setMsg(`⛓️ Logging ${fmt(focused)} onchain...`);
+      } as any);
+      // wait for receipt + refetch onchain progress
+      await refetchProg();
+      await refetchBadge();
       setCommitted(false);
+      setRunning(false);
+      setShowShare(true); // show share modal AFTER successful log
+      setMsg("✅ Session logged onchain.");
     } catch (e: any) {
       setMsg("❌ " + (e?.shortMessage || e?.message));
     } finally {
@@ -536,51 +542,62 @@ export default function Home() {
                     </div>
 
                     <div style={{ display: "flex", justifyContent: "center", margin: "6px 0 10px", position: "relative" }}>
-                      <svg width="180" height="180" viewBox="0 0 180 180">
-                        <circle cx="90" cy="90" r="76" stroke="rgba(255,255,255,0.2)" strokeWidth="12" fill="none" />
-                        <circle cx="90" cy="90" r="76" stroke="#fff" strokeWidth="12" fill="none"
-                          strokeDasharray={478} strokeDashoffset={478 - (478 * Math.min(sessionPct, targetPct)) / Math.max(targetPct, 1)}
-                          strokeLinecap="round" transform="rotate(-90 90 90)" style={{ transition: "stroke-dashoffset 1s linear" }} />
+                      <svg width="200" height="200" viewBox="0 0 200 200">
+                        <circle cx="100" cy="100" r="86" stroke="rgba(255,255,255,0.2)" strokeWidth="14" fill="none" />
+                        <circle cx="100" cy="100" r="86" stroke="#fff" strokeWidth="14" fill="none"
+                          strokeDasharray={540} strokeDashoffset={540 - (540 * Math.min(sessionPct, 100)) / 100}
+                          strokeLinecap="round" transform="rotate(-90 100 100)" style={{ transition: "stroke-dashoffset 1s linear" }} />
                       </svg>
                       <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", textAlign: "center" }}>
-                        <div style={{ fontSize: 34, fontWeight: 700, color: "#fff", fontFamily: "'Roboto Mono', monospace" }}>
-                          {running || committed ? `${sessionPct}%` : `${targetPct}%`}
+                        <div style={{ fontSize: 40, fontWeight: 700, color: "#fff", fontFamily: "'Roboto Mono', monospace" }}>
+                          {running || committed ? `${sessionPct}%` : "0%"}
                         </div>
-                        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.8)", textTransform: "uppercase", letterSpacing: 1, marginTop: 2 }}>
-                          {running ? "Locked in" : committed ? "Ready to log" : `of ${dur / 60}m target`}
+                        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.8)", textTransform: "uppercase", letterSpacing: 1, marginTop: 2 }}>
+                          60 min = 100%
                         </div>
                       </div>
                     </div>
 
-                    <div style={{ display: "flex", justifyContent: "center", gap: 26, marginTop: 6 }}>
-                      <div style={{ textAlign: "center" }}><div style={{ color: "#fff", fontWeight: 700, fontSize: 16, fontFamily: "'Roboto Mono', monospace" }}>{prog ? `${prog.streak}d` : "0"}</div><div style={{ color: "rgba(255,255,255,0.75)", fontSize: 10, textTransform: "uppercase" }}>Streak</div></div>
-                      <div style={{ textAlign: "center" }}><div style={{ color: "#fff", fontWeight: 700, fontSize: 16, fontFamily: "'Roboto Mono', monospace" }}>{prog ? `Lv ${prog.level}` : "0"}</div><div style={{ color: "rgba(255,255,255,0.75)", fontSize: 10, textTransform: "uppercase" }}>Level</div></div>
-                      <div style={{ textAlign: "center" }}><div style={{ color: "#fff", fontWeight: 700, fontSize: 16, fontFamily: "'Roboto Mono', monospace" }}>{prog ? String(prog.xp) : "0"}</div><div style={{ color: "rgba(255,255,255,0.75)", fontSize: 10, textTransform: "uppercase" }}>XP</div></div>
-                    </div>
-
-                    <div style={{ display: "flex", gap: 8, margin: "14px 0 4px" }}>
-                      {[25, 45, 50, 90].map((m) => (
-                        <button key={m} style={S.chip(dur === m * 60)} onClick={() => setDur(m * 60)} disabled={running || committed}>
-                          <span style={{ display: "block", fontSize: 14, fontWeight: 700, fontFamily: "'Roboto Mono', monospace" }}>{fmtHourPct(m * 60)}%</span>
-                          <span style={{ display: "block", fontSize: 9, opacity: 0.7 }}>{m}m</span>
-                        </button>
-                      ))}
-                    </div>
+                    {/* duration input (user sets any minutes they want) */}
+                    {!running && !committed && (
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 6, marginBottom: 4 }}>
+                        <span style={{ fontSize: 12, color: "rgba(255,255,255,0.7)" }}>Focus for</span>
+                        <input
+                          type="number"
+                          min={1}
+                          max={1440}
+                          value={durMin}
+                          onChange={(e) => {
+                            const m = Math.max(1, Math.min(1440, Number(e.target.value) || 1));
+                            setDurMin(m);
+                            setDur(m * 60);
+                            setLeft(m * 60);
+                          }}
+                          style={{ width: 64, background: "rgba(255,255,255,0.1)", border: `1px solid ${T.border}`, color: "#fff", borderRadius: 8, padding: "6px 8px", fontSize: 14, fontFamily: "'Roboto Mono', monospace", textAlign: "center" }}
+                        />
+                        <span style={{ fontSize: 12, color: "rgba(255,255,255,0.7)" }}>min</span>
+                      </div>
+                    )}
 
                     {!running && !committed ? (
                       <button style={{ width: "100%", background: "#fff", color: T.accent, border: "none", padding: 14, borderRadius: 14, fontWeight: 700, fontSize: 14, marginTop: 14, cursor: "pointer" }} onClick={startSession}>
                         Lock in
                       </button>
                     ) : running ? (
-                      <button style={{ width: "100%", background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.4)", padding: 14, borderRadius: 14, fontWeight: 700, fontSize: 14, marginTop: 14, cursor: "pointer" }} onClick={() => { setRunning(false); setShowShare(true); }}>
+                      <button style={{ width: "100%", background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.4)", padding: 14, borderRadius: 14, fontWeight: 700, fontSize: 14, marginTop: 14, cursor: "pointer" }} onClick={() => setRunning(false)}>
                         Pause
                       </button>
                     ) : (
-                      <button style={{ width: "100%", background: "#fff", color: T.accent, border: "none", padding: 14, borderRadius: 14, fontWeight: 700, fontSize: 14, marginTop: 14, cursor: "pointer" }} onClick={logSession} disabled={isPending || left !== 0}>
-                        Log Session Onchain
-                      </button>
+                      <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+                        <button style={{ flex: 1, background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.4)", padding: 14, borderRadius: 14, fontWeight: 700, fontSize: 14, cursor: "pointer" }} onClick={() => setRunning(true)}>
+                          Resume
+                        </button>
+                        <button style={{ flex: 1, background: "#fff", color: T.accent, border: "none", padding: 14, borderRadius: 14, fontWeight: 700, fontSize: 14, cursor: "pointer" }} onClick={logSession} disabled={isPending || logging}>
+                          Log Session
+                        </button>
+                      </div>
                     )}
-                    <div style={{ textAlign: "center", fontSize: 10, color: "rgba(255,255,255,0.6)", marginTop: 10, fontFamily: "'Roboto Mono', monospace" }}>1 hour = 100%, always</div>
+                    <div style={{ textAlign: "center", fontSize: 10, color: "rgba(255,255,255,0.6)", marginTop: 10, fontFamily: "'Roboto Mono', monospace" }}>60 min = 100%, always</div>
                   </div>
 
                   <div style={S.sectionTitle}><h3 style={S.sectionH3}>Top streaks</h3><span style={{ fontSize: 11, color: T.accent, fontWeight: 600, cursor: "pointer" }} onClick={() => setTab("progress")}>See all</span></div>
