@@ -32,7 +32,9 @@ const noopStorage = createStorage({
 export const config = createConfig({
   chains: [monadTestnet],
   connectors: [
-    metaMask(),
+    metaMask({
+      dappMetadata: { name: "FokusLe", url: "https://fokusle.vercel.app" },
+    }),
     injected({ shimDisconnect: true }),
   ],
   transports: { [monadTestnet.id]: http("https://testnet-rpc.monad.xyz") },
