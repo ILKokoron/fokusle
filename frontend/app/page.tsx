@@ -443,20 +443,37 @@ export default function Home() {
     return `🔒 LOCKED IN\n\nToday\n${fmt(prog.weeklySeconds < prog.totalSeconds ? prog.weeklySeconds : prog.totalSeconds)}\n\nWeekly\n${fmt(prog.weeklySeconds)}\n\nCurrent Streak\n${prog.streak} Days\n\nFocus Score\n${fmtPct(prog.weeklySeconds, 7n * 3600n * 8n)}%\n\nWallet\n${address?.slice(0, 6)}…${address?.slice(-4)}\n\n#ProofOfFocus #FokusLe`;
   };
   const share = (platform: string) => {
-    const text = encodeURIComponent(shareText());
+    const text = shareText();
     if (platform === "dc") {
-      navigator.clipboard.writeText(shareText());
+      navigator.clipboard.writeText(text);
       downloadCard();
       setMsg("📋 Lock-In card copied + downloaded — paste to Discord.");
       return;
     }
-    // X: also auto-generate the flex card PNG locally
+    // X: build flex card PNG, share via Web Share API (mobile → native sheet w/ image attached)
+    const bgs: CardBadge[] = Object.values(BADGE_META).map((b, i) => ({
+      name: b.name,
+      got: badges.includes(i + 1),
+    }));
+    const dataUrl = renderFokusCard({
+      handle: displayName,
+      wallet: address || "",
+      weeklySeconds: prog?.weeklySeconds ?? 0n,
+      totalSeconds: prog?.totalSeconds ?? 0n,
+      streak: prog?.streak ?? 0n,
+      xp: prog?.xp ?? 0n,
+      level: prog?.level ?? 0n,
+      badges: bgs,
+    });
+    const blob = dataUrlToBlob(dataUrl);
+    const file = new File([blob], `fokusle-lockedin-${address?.slice(0, 6)}.png`, { type: "image/png" });
+    if (typeof navigator !== "undefined" && navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file], text }).catch(() => {});
+      return;
+    }
+    // fallback (desktop): download + open composer
     downloadCard();
-    const urls: Record<string, string> = {
-      x: `https://twitter.com/intent/tweet?text=${text}`,
-      tg: `https://t.me/share/url?url=https://fokusle.vercel.app&text=${text}`,
-    };
-    window.open(urls[platform], "_blank");
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, "_blank");
   };
 
   const downloadCard = () => {
