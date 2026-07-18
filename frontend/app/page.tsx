@@ -59,6 +59,7 @@ export default function Home() {
   const [theme, setTheme] = useState<"dark" | "light">("dark");
 
   const [running, setRunning] = useState(false);
+  const [started, setStarted] = useState(false);
   const [durMin, setDurMin] = useState(60);
   const [dur, setDur] = useState(60 * 60);
   const [left, setLeft] = useState(60 * 60);
@@ -386,6 +387,7 @@ export default function Home() {
 
   const startSession = async () => {
     // NO onchain tx — just start the local timer. Data is only written on finish/log.
+    setStarted(true);
     setRunning(true);
     setLeft(dur);
     setMsg("🔒 Locked in. Focus now.");
@@ -410,6 +412,7 @@ export default function Home() {
       await refetchProg();
       await refetchBadge();
       setRunning(false);
+      setStarted(false);
       setShowShare(true); // show share modal AFTER successful log
       setMsg("✅ Session logged onchain.");
     } catch (e: any) {
@@ -554,7 +557,7 @@ export default function Home() {
                       </div>
                     )}
 
-                    {!running ? (
+                    {!started ? (
                       <button style={{ width: "100%", background: "#fff", color: T.accent, border: "none", padding: 14, borderRadius: 14, fontWeight: 700, fontSize: 14, marginTop: 14, cursor: "pointer" }} onClick={startSession}>
                         Lock in
                       </button>
@@ -568,11 +571,11 @@ export default function Home() {
                           Resume
                         </button>
                         <button style={{ flex: 1, background: "#fff", color: T.accent, border: "none", padding: 14, borderRadius: 14, fontWeight: 700, fontSize: 14, cursor: "pointer" }} onClick={logSession} disabled={isPending || logging}>
-                          Log Session
+                          Finish
                         </button>
                       </div>
                     )}
-                    <div style={{ textAlign: "center", fontSize: 10, color: "rgba(255,255,255,0.6)", marginTop: 10, fontFamily: "'Roboto Mono', monospace" }}>60 min = 100%, always</div>
+                    <div style={{ textAlign: "center", fontSize: 10, color: "rgba(255,255,255,0.6)", marginTop: 10, fontFamily: "'Roboto Mono', monospace" }}>60 min = 100%, always · Finish = onchain fee</div>
                   </div>
 
                   <div style={S.sectionTitle}><h3 style={S.sectionH3}>Top streaks</h3><span style={{ fontSize: 11, color: T.accent, fontWeight: 600, cursor: "pointer" }} onClick={() => setTab("progress")}>See all</span></div>
