@@ -56,8 +56,6 @@ On web, a session is a verified presence: you lock in, the timer runs, you finis
 
 Crypto wallets are still early, but they're heading toward being as normal as a regular wallet. As wallets spread, logging into Fokusle gets easier for everyone, no new account, no password, your focus history travels with your address. The leaderboard and the flex card already build the social layer: you see others, you share your lock-in, you compare streaks.
 
-The schizo card and the badges are on purpose. Attention is the economy now. Making discipline something you actually want to post is the whole point.
-
 ## Roadmap
 - v2: native Android + iOS app. Phone-lock and motion detection so a session dies if the device is picked up, real focus verification, not just presence.
 - Grace day on streak: miss one day, streak survives.
