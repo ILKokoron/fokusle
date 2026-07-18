@@ -110,7 +110,7 @@ export default function Home() {
       }
       await new Promise((r) => setTimeout(r, 2500));
       await refetchAvatar();
-      setToast({ text: "✅ PFP saved", type: "ok" });
+      setToast({ text: "PFP saved", type: "ok" });
     } catch {
       setToast({ text: "❌ Failed", type: "error" });
     }
@@ -351,7 +351,7 @@ export default function Home() {
       await new Promise((r) => setTimeout(r, 2500));
       await refetchNickname();
       setNicknameInput("");
-      setToast({ text: "✅ Name saved", type: "ok" });
+      setToast({ text: "Name saved", type: "ok" });
     } catch (e: any) {
       setToast({ text: "❌ Failed", type: "error" });
     } finally {
@@ -484,7 +484,7 @@ export default function Home() {
     // which can be tampered). This is what gets logged onchain.
     const elapsedSec = Math.max(0, Math.floor((Date.now() - sessionStart) / 1000));
     const focused = BigInt(Math.max(elapsedSec, elapsed));
-    if (focused <= 0n) { setToast({ text: "⚠️ Timer not started", type: "error" }); return; }
+    if (focused <= 0n) { setToast({ text: "Timer not started", type: "error" }); return; }
     // Replay-proof nonce: must equal the next unused session index.
     const nonce = (prog?.sessionCount ?? 0n) + 1n;
     setLogging(true);
@@ -509,7 +509,7 @@ export default function Home() {
       setStarted(false);
       setElapsed(0);
       setShowShare(true); // show share modal AFTER successful log
-      setToast({ text: "✅ Success", type: "ok" });
+      setToast({ text: "Success", type: "ok" });
     } catch (e: any) {
       setToast({ text: "❌ Failed", type: "error" });
     } finally {
@@ -543,7 +543,7 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
     if (platform === "dc") {
       navigator.clipboard.writeText(text);
       downloadCard();
-      setToast({ text: "📋 Card copied", type: "ok" });
+      setToast({ text: "Card copied", type: "ok" });
       return;
     }
     // X: text-only redirect + auto-download flex card PNG (user attaches manually)
@@ -575,7 +575,7 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
     a.download = `fokusle-lockedin-${address?.slice(0, 6)}.png`;
     a.click();
     URL.revokeObjectURL(url);
-    setToast({ text: "🖼️ Card downloaded", type: "ok" });
+    setToast({ text: "Card downloaded", type: "ok" });
   };
 
   const cardToday = fmt(prog?.weeklySeconds ?? 0n);

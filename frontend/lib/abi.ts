@@ -175,9 +175,9 @@ export const MONANIMAL_NAMES: Record<number, string> = {
 };
 
 export const BADGE_META: Record<number, { icon: string; name: string }> = {
-  1: { icon: "🥉", name: "First Hour" },
-  2: { icon: "🥈", name: "10 Hour Club" },
-  3: { icon: "🥇", name: "100 Hours" },
-  4: { icon: "🔥", name: "30-Day Streak" },
-  5: { icon: "💎", name: "Locked In" },
+  1: { icon: "I", name: "First Hour" },
+  2: { icon: "II", name: "10 Hour Club" },
+  3: { icon: "III", name: "100 Hours" },
+  4: { icon: "30D", name: "30-Day Streak" },
+  5: { icon: "L", name: "Locked In" },
 };

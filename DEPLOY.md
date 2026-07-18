@@ -1,4 +1,4 @@
-# DEPLOY.md — Instruksi dari laptop lo sendiri
+# DEPLOY.md - Instruksi dari laptop lo sendiri
 
 Semua dijalankan di laptop/PC lo (bukan VPS). Butuh: Node.js 18+, Foundry (`forge`/`cast`), git.
 
@@ -6,7 +6,7 @@ Semua dijalankan di laptop/PC lo (bukan VPS). Butuh: Node.js 18+, Foundry (`forg
 Folder `fokusle/` (contract + frontend).
 Butuh forge-std buat test: `git clone https://github.com/foundry-rs/forge-std lib/forge-std` di folder project.
 
-## 2. Deploy contract ke Monad Testnet (Foundry) — opsional, udah gw deploy
+## 2. Deploy contract ke Monad Testnet (Foundry), opsional, udah gw deploy
 ```bash
 export PK=0xYOUR_TESTNET_PRIVATE_KEY
 forge create src/Fokusle.sol:Fokusle \
@@ -14,8 +14,8 @@ forge create src/Fokusle.sol:Fokusle \
   --rpc-url https://testnet-rpc.monad.xyz \
   --legacy --broadcast
 ```
-Copy address hasilnya ke `frontend/lib/abi.ts` line `FOKUSLE_ADDRESS`.
-> Sudah deployed: ``
+Copy address hasilnya ke `frontend/lib/abi.ts` line `FOCUSPROOF_ADDRESS`.
+> Sudah deployed: `0x2936B3C6E8072133f280109acD43e6530661DAC1`
 
 ## 3. Isi faucet
 https://testnet.monad.xyz/ → paste wallet address → claim.
@@ -47,6 +47,6 @@ Buka http://localhost:3000
 ## 7. Submission BuildAnything
 - URL web app: `vercel` di folder frontend, atau `npm run dev` + ngrok
 - GitHub repo: public
-- Contract address: 0xAeCA5a0D414688C8b6bc7dEBa24124BB276d7D60
+- Contract address: 0x2936B3C6E8072133f280109acD43e6530661DAC1
 - Demo video: YouTube unlisted 3 menit
 - Social post: X thread "Proof of Focus" (Most viral prize)

@@ -4,7 +4,7 @@ import { Providers } from "./providers";
 import "@rainbow-me/rainbowkit/styles.css";
 
 export const metadata: Metadata = {
-  title: "Fokusle — Proof of Focus. Proof of Discipline.",
+  title: "Fokusle - Proof of Focus. Proof of Discipline.",
   description: "Lock in. Focus. Prove it onchain. Wallet = identity. No staking, no token.",
 };
 
