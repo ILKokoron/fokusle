@@ -1,12 +1,10 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { useAccount, useReadContract, useWriteContract, useSignMessage, usePublicClient } from "wagmi";
+import { useAccount, useReadContract, useWriteContract, useSignMessage, usePublicClient, useConnect, useDisconnect } from "wagmi";
 import { keccak256, encodePacked, encodeAbiParameters, parseAbiParameters } from "viem";
 import { FOCUSPROOF_ADDRESS, FOCUSPROOF_ABI, BADGE_META, MONANIMAL_NAMES } from "../lib/abi";
 import { renderFokusCard, dataUrlToBlob, type CardBadge } from "../lib/card";
-import { ErrorBoundary } from "./ErrorBoundary";
 import { monadTestnet } from "../lib/wagmi";
 
 type Progress = {
@@ -48,6 +46,8 @@ const themes = {
 
 export default function Home() {
   const { address, isConnected } = useAccount();
+  const { connect, connectors, isPending: isConnectPending } = useConnect();
+  const { disconnect } = useDisconnect();
   const { writeContract, writeContractAsync, isPending } = useWriteContract();
   const { signMessageAsync } = useSignMessage();
 
@@ -351,7 +351,7 @@ export default function Home() {
     try {
       await signMessageAsync({ account: address, message: `FokusLe login\nWallet: ${address}\nSign to prove ownership.` });
       setAuthed(true);
-      setMsg("✅ Signed in. Wallet = your identity.");
+      setMsg("");
     } catch {
       setMsg("❌ Sign cancelled.");
     }
@@ -494,18 +494,19 @@ export default function Home() {
     <div style={{ background: theme === "dark" ? "#0a0710" : "#eee9ff", minHeight: "100vh", padding: "20px 0" }}>
       <div style={S.device as any}>
         <div style={S.screen}>
-          <ErrorBoundary>
           {!isConnected ? (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: 600, textAlign: "center", padding: "0 10px" }}>
               <h2 style={{ fontSize: 18, margin: "0 0 8px", fontFamily: "'Space Grotesk', sans-serif" }}>FokusLe</h2>
               <p style={{ color: T.muted, fontSize: 13, margin: "0 0 28px", lineHeight: 1.5 }}>Proof of Focus. Proof of Discipline.<br />Connect your wallet to start a session.</p>
-              <ConnectButton />
+              <button onClick={() => connect({ connector: connectors[0] })} style={{ background: T.accent, color: "#fff", border: "none", padding: "12px 24px", borderRadius: 14, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+                {isConnectPending ? "Connecting..." : "Connect Wallet"}
+              </button>
             </div>
           ) : !authed ? (
             <div style={{ ...S.card, marginTop: 60, textAlign: "center" }}>
               <p style={{ margin: "0 0 12px", fontSize: 13, color: T.muted }}>{shortAddr(address)}</p>
               <button style={{ width: "100%", background: T.accent, color: "#fff", border: "none", padding: 14, borderRadius: 14, fontWeight: 700, fontSize: 14, cursor: "pointer" }} onClick={signIn}>
-                Sign to login (no gas)
+                Sign in
               </button>
             </div>
           ) : (
@@ -542,9 +543,9 @@ export default function Home() {
                     </div>
 
                     <div style={{ display: "flex", justifyContent: "center", gap: 26, marginTop: 6 }}>
-                      <div style={{ textAlign: "center" }}><div style={{ color: "#fff", fontWeight: 700, fontSize: 16, fontFamily: "'Roboto Mono', monospace" }}>{prog ? `${prog.streak}d` : "-"}</div><div style={{ color: "rgba(255,255,255,0.75)", fontSize: 10, textTransform: "uppercase" }}>Streak</div></div>
-                      <div style={{ textAlign: "center" }}><div style={{ color: "#fff", fontWeight: 700, fontSize: 16, fontFamily: "'Roboto Mono', monospace" }}>{prog ? `Lv ${prog.level}` : "-"}</div><div style={{ color: "rgba(255,255,255,0.75)", fontSize: 10, textTransform: "uppercase" }}>Level</div></div>
-                      <div style={{ textAlign: "center" }}><div style={{ color: "#fff", fontWeight: 700, fontSize: 16, fontFamily: "'Roboto Mono', monospace" }}>{prog ? String(prog.xp) : "-"}</div><div style={{ color: "rgba(255,255,255,0.75)", fontSize: 10, textTransform: "uppercase" }}>XP</div></div>
+                      <div style={{ textAlign: "center" }}><div style={{ color: "#fff", fontWeight: 700, fontSize: 16, fontFamily: "'Roboto Mono', monospace" }}>{prog ? `${prog.streak}d` : "0"}</div><div style={{ color: "rgba(255,255,255,0.75)", fontSize: 10, textTransform: "uppercase" }}>Streak</div></div>
+                      <div style={{ textAlign: "center" }}><div style={{ color: "#fff", fontWeight: 700, fontSize: 16, fontFamily: "'Roboto Mono', monospace" }}>{prog ? `Lv ${prog.level}` : "0"}</div><div style={{ color: "rgba(255,255,255,0.75)", fontSize: 10, textTransform: "uppercase" }}>Level</div></div>
+                      <div style={{ textAlign: "center" }}><div style={{ color: "#fff", fontWeight: 700, fontSize: 16, fontFamily: "'Roboto Mono', monospace" }}>{prog ? String(prog.xp) : "0"}</div><div style={{ color: "rgba(255,255,255,0.75)", fontSize: 10, textTransform: "uppercase" }}>XP</div></div>
                     </div>
 
                     <div style={{ display: "flex", gap: 8, margin: "14px 0 4px" }}>
@@ -558,7 +559,7 @@ export default function Home() {
 
                     {!running && !committed ? (
                       <button style={{ width: "100%", background: "#fff", color: T.accent, border: "none", padding: 14, borderRadius: 14, fontWeight: 700, fontSize: 14, marginTop: 14, cursor: "pointer" }} onClick={startSession}>
-                        Lock In &amp; Start
+                        Lock in
                       </button>
                     ) : running ? (
                       <button style={{ width: "100%", background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.4)", padding: 14, borderRadius: 14, fontWeight: 700, fontSize: 14, marginTop: 14, cursor: "pointer" }} onClick={() => setRunning(false)}>
@@ -695,8 +696,8 @@ export default function Home() {
               {tab === "profile" && (
                 <>
                   <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 4 }}>
-                    <div style={{ width: 32, height: 32, borderRadius: 999, background: T.card2, border: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }} onClick={() => setTab("settings")}>
-                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" /></svg>
+                    <div style={{ width: 64, height: 26, borderRadius: 999, background: T.card2, border: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: T.accent, fontFamily: "'Roboto Mono', monospace", cursor: "pointer" }} onClick={() => setTab("settings")}>
+                      100% = 60m
                     </div>
                   </div>
                   <div style={{ ...S.card, textAlign: "center" }}>
@@ -789,10 +790,9 @@ export default function Home() {
               )}
             </>
           )}
-          </ErrorBoundary>
           </div>
 
-        {isConnected && authed && (
+          {isConnected && authed && (
           <div style={S.tabbar}>
             <button style={S.tab(tab === "focus")} onClick={() => setTab("focus")}>Focus</button>
             <button style={S.tab(tab === "progress")} onClick={() => setTab("progress")}>Progress</button>

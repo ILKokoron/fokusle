@@ -1,5 +1,5 @@
-import { http, createConfig, cookieStorage, createStorage } from "wagmi";
-import { getDefaultConfig } from "@rainbow-me/rainbowkit";
+import { http, createConfig, createStorage } from "wagmi";
+import { injected } from "wagmi/connectors";
 
 export const monadTestnet = {
   id: 10143,
@@ -10,8 +10,6 @@ export const monadTestnet = {
   testnet: true,
 } as const;
 
-// Storage fallback: avoid indexedDB dependency (crashes on mobile incognito /
-// some WebViews where indexedDB is undefined). Use cookieStorage-safe localStorage.
 const noopStorage = createStorage({
   storage: {
     getItem: (key: string) => {
@@ -29,10 +27,11 @@ const noopStorage = createStorage({
   },
 });
 
-export const config = getDefaultConfig({
-  appName: "Fokusle",
-  projectId: "fokusle-hackathon-spark",
+// Pure wagmi: injected connector only (browser wallet / MetaMask).
+// No RainbowKit / WalletConnect => no indexedDB dependency => no mobile crash.
+export const config = createConfig({
   chains: [monadTestnet],
+  connectors: [injected({ shimDisconnect: true })],
   transports: { [monadTestnet.id]: http("https://testnet-rpc.monad.xyz") },
   ssr: true,
   storage: noopStorage,
