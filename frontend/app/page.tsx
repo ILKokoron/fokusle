@@ -788,20 +788,6 @@ export default function Home() {
                     <div style={{ color: T.muted, fontSize: 11, marginTop: 2 }}>{address}</div>
                   </div>
 
-                  {!nnsProfile?.primaryName && (
-                    <div style={S.card}>
-                      <h3 style={{ ...S.sectionH3, marginBottom: 12 }}>Display name</h3>
-                      <p style={{ color: T.muted, fontSize: 12, margin: "0 0 12px", lineHeight: 1.5 }}>No .nad name found for this wallet. Set a custom nickname instead — stored onchain.</p>
-                      <div style={{ display: "flex", gap: 8 }}>
-                        <input value={nicknameInput} onChange={(e) => setNicknameInput(e.target.value)} placeholder="Nickname (max 20 chars)" maxLength={20}
-                          style={{ flex: 1, background: T.bg, border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 12px", color: T.text, fontSize: 13, outline: "none" }} />
-                        <button onClick={saveNickname} disabled={nicknameSaving} style={{ background: T.accent, color: "#fff", border: "none", padding: "0 16px", borderRadius: 10, fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
-                          {nicknameSaving ? "..." : "Save"}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
                   {prog && (
                     <div style={S.card}>
                       <div style={{ display: "flex", gap: 10 }}>
@@ -880,7 +866,17 @@ export default function Home() {
                         <button onClick={() => saveCustomAvatar(null)} style={{ background: "transparent", border: `1px solid ${GHOST.border}`, color: GHOST.text, padding: "8px 12px", borderRadius: 10, fontSize: 12, cursor: "pointer" }}>Reset</button>
                       )}
                     </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", padding: "13px 0", borderBottom: `1px solid ${T.border}`, fontSize: 13 }}><span>Nickname</span><span style={{ color: T.muted }}>{(nicknameData as string) || "Not set"}</span></div>
+                    <div style={{ padding: "13px 0", borderBottom: `1px solid ${T.border}` }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Display name</div>
+                      <div style={{ fontSize: 11, color: T.muted, marginBottom: 10, lineHeight: 1.5 }}>{(nicknameData as string) ? `Current: ${nicknameData as string}` : "No .nad name — set a custom nickname (stored onchain)."}</div>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <input value={nicknameInput} onChange={(e) => setNicknameInput(e.target.value)} placeholder="Nickname (max 20 chars)" maxLength={20}
+                          style={{ flex: 1, background: T.bg, border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 12px", color: T.text, fontSize: 13, outline: "none" }} />
+                        <button onClick={saveNickname} disabled={nicknameSaving} style={{ background: T.accent, color: "#fff", border: "none", padding: "0 16px", borderRadius: 10, fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
+                          {nicknameSaving ? "..." : "Save"}
+                        </button>
+                      </div>
+                    </div>
                     <div style={{ display: "flex", justifyContent: "space-between", padding: "13px 0", fontSize: 13 }}><span style={{ color: "#ff9b9b" }}>Sign out</span><span style={{ color: "#ff9b9b", cursor: "pointer" }} onClick={() => setAuthed(false)}>→</span></div>
                   </div>
                   <div style={S.sectionTitle}><h3 style={S.sectionH3}>About</h3></div>
