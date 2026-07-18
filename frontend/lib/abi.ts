@@ -1,7 +1,7 @@
-// Fokusle ABI (deployed on Monad Testnet)
-export const FOKUSLE_ADDRESS = "0x08F71A7564336D176563ED971704EEAd37229D6b" as const;
+// FokusLe ABI (deployed on Monad Testnet)
+export const FOCUSPROOF_ADDRESS = "0x08F71A7564336D176563ED971704EEAd37229D6b" as const;
 
-export const FOKUSLE_ABI = [
+export const FOCUSPROOF_ABI = [
   {
     type: "function",
     name: "commit",
@@ -35,13 +35,6 @@ export const FOKUSLE_ABI = [
   },
   {
     type: "function",
-    name: "nickname",
-    stateMutability: "view",
-    inputs: [{ name: "u", type: "address" }],
-    outputs: [{ name: "", type: "string" }],
-  },
-  {
-    type: "function",
     name: "getBadges",
     stateMutability: "view",
     inputs: [{ name: "u", type: "address" }],
@@ -67,6 +60,66 @@ export const FOKUSLE_ABI = [
     stateMutability: "view",
     inputs: [{ name: "id", type: "uint256" }],
     outputs: [{ name: "", type: "string" }],
+  },
+  {
+    type: "function",
+    name: "setNickname",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "name", type: "string" }],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "nickname",
+    stateMutability: "view",
+    inputs: [{ name: "", type: "address" }],
+    outputs: [{ name: "", type: "string" }],
+  },
+  {
+    type: "function",
+    name: "pullGacha",
+    stateMutability: "nonpayable",
+    inputs: [],
+    outputs: [{ name: "monanimalId", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "getGachaPulls",
+    stateMutability: "view",
+    inputs: [{ name: "u", type: "address" }],
+    outputs: [{ name: "", type: "uint256[]" }],
+  },
+  {
+    type: "function",
+    name: "GACHA_COST_XP",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "MONANIMALS",
+    stateMutability: "view",
+    inputs: [{ name: "", type: "uint256" }],
+    outputs: [{ name: "", type: "string" }],
+  },
+  {
+    type: "event",
+    name: "GachaPulled",
+    inputs: [
+      { name: "user", type: "address", indexed: true },
+      { name: "monanimalId", type: "uint256", indexed: false },
+      { name: "name", type: "string", indexed: false },
+      { name: "xpSpent", type: "uint256", indexed: false },
+    ],
+  },
+  {
+    type: "event",
+    name: "NicknameSet",
+    inputs: [
+      { name: "user", type: "address", indexed: true },
+      { name: "nickname", type: "string", indexed: false },
+    ],
   },
   {
     type: "event",
@@ -100,6 +153,10 @@ export const FOKUSLE_ABI = [
     ],
   },
 ] as const;
+
+export const MONANIMAL_NAMES: Record<number, string> = {
+  1: "Chog", 2: "Molandak", 3: "Moyaki", 4: "Mokadel", 5: "Mouch", 6: "Salmonad", 7: "Mosferatu",
+};
 
 export const BADGE_META: Record<number, { icon: string; name: string }> = {
   1: { icon: "🥉", name: "First Hour" },
