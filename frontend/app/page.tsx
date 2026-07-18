@@ -446,34 +446,22 @@ export default function Home() {
     const text = shareText();
     if (platform === "dc") {
       navigator.clipboard.writeText(text);
-      downloadCard();
-      setMsg("📋 Lock-In card copied + downloaded — paste to Discord.");
+      setMsg("📋 Lock-In card copied — paste to Discord.");
       return;
     }
-    // X: build flex card PNG, share via Web Share API (mobile → native sheet w/ image attached)
-    const bgs: CardBadge[] = Object.values(BADGE_META).map((b, i) => ({
-      name: b.name,
-      got: badges.includes(i + 1),
-    }));
-    const dataUrl = renderFokusCard({
-      handle: displayName,
-      wallet: address || "",
-      weeklySeconds: prog?.weeklySeconds ?? 0n,
-      totalSeconds: prog?.totalSeconds ?? 0n,
-      streak: prog?.streak ?? 0n,
-      xp: prog?.xp ?? 0n,
-      level: prog?.level ?? 0n,
-      badges: bgs,
+    // X (Opsi A): text + URL to /share page → Twitter renders OG card image automatically
+    const base = window.location.origin;
+    const qs = new URLSearchParams({
+      score: fmtPct(prog?.weeklySeconds ?? 0n, 7n * 3600n * 8n) + "%",
+      today: fmt(prog?.weeklySeconds ?? 0n),
+      weekly: fmt(prog?.weeklySeconds ?? 0n),
+      streak: `${prog?.streak ?? 0n}D`,
+      handle: "@" + (displayName || "fokusle"),
+      wallet: address ? `${address.slice(0, 6)}...${address.slice(-4)}` : "",
+      theme: "purple",
     });
-    const blob = dataUrlToBlob(dataUrl);
-    const file = new File([blob], `fokusle-lockedin-${address?.slice(0, 6)}.png`, { type: "image/png" });
-    if (typeof navigator !== "undefined" && navigator.canShare && navigator.canShare({ files: [file] })) {
-      navigator.share({ files: [file], text }).catch(() => {});
-      return;
-    }
-    // fallback (desktop): download + open composer
-    downloadCard();
-    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, "_blank");
+    const url = `${base}/share?${qs.toString()}`;
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, "_blank");
   };
 
   const downloadCard = () => {
