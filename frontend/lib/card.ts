@@ -30,45 +30,45 @@ function defaultAvatar(wallet: string): string {
   return `https://api.dicebear.com/7.x/shapes/svg?seed=${wallet || "fokusle"}`;
 }
 
-// English lowercase quotes, no emoji, no caps shouting. Dynamic by total hours.
+// English lowercase schizo-hustler quotes, no emoji, no time (shown elsewhere).
+// Dynamic by total hours: low = self-deprecating, high = praising the user.
 function pickQuote(totalSec: number, streakDays: number): string {
   const hrs = totalSec / 3600;
   const st = streakDays;
-  const t = fmt(BigInt(totalSec));
   let body = "";
   if (hrs < 1) {
     const opts = [
-      `just locked in ${t}. they said i wouldn't last. they were right but i did it anyway`,
-      `day one of the grind. ${t} logged. dopamine detox started (failed yesterday)`,
-      `${t} of focus today. discipline is real they said (someone check if i'm okay)`,
+      `they laughed when i opened the timer. i laughed when they closed the tab`,
+      `day one. the void is watching and honestly it respects the attempt`,
+      `i am not disciplined yet but i am louder about it than everyone i know`,
     ];
     body = opts[Math.floor(Math.random() * opts.length)];
   } else if (hrs < 5) {
     const opts = [
-      `${t} on chain. streak ${st} days. they scroll, i level up slowly`,
-      `total ${t} focused. my brain is almost a machine now, still leaking a bit`,
-      `streak ${st} days. ${t} logged. the algorithm is starting to fear me`,
+      `the scroll demons are knocking. i gave them the silent treatment for hours`,
+      `built a fortress of focus out of pure spite and mild dehydration`,
+      `they said consistency is a myth. ${st} days in i am the myth now`,
     ];
     body = opts[Math.floor(Math.random() * opts.length)];
   } else if (hrs < 20) {
     const opts = [
-      `${t} logged. streak ${st} days. i have become the protocol. monad knows`,
-      `discipline is a religion. ${t} prayed. ${st} day streak. amen`,
-      `${st} days of pure focus. ${t}. they will never get the grind`,
+      `monad knows i did not break. the chain remembers what the world forgot`,
+      `discipline is just revenge on your past self done daily until it apologizes`,
+      `i traded the feed for the grind and the grind finally started talking back`,
     ];
     body = opts[Math.floor(Math.random() * opts.length)];
   } else if (hrs < 60) {
     const opts = [
-      `legend status: ${t} focused. ${st} day streak. you are the standard now`,
-      `${t} of discipline. the grind respects you. keep building, king`,
-      `${st} day streak. ${t} on chain. you are what focus looks like`,
+      `they scroll, they cope, they sleep. i am the protocol running on pure intent`,
+      `the hustle is not a phase. it is the only language the future speaks`,
+      `you are watching a man become an algorithm of discipline in real time`,
     ];
     body = opts[Math.floor(Math.random() * opts.length)];
   } else {
     const opts = [
-      `ascended. ${t} of pure discipline. ${st} day streak. you are the example they quote`,
-      `${t} logged. you did not break. you became the grind. respect`,
-      `${st} day streak. ${t}. the focus gods wept. you are untouchable`,
+      `ascended past the noise. what remains is the grind and the grind is family`,
+      `the gods of focus made me their spokesperson and i did not even apply`,
+      `untouchable now. the feed fears my silence and the chain celebrates my name`,
     ];
     body = opts[Math.floor(Math.random() * opts.length)];
   }
@@ -264,7 +264,7 @@ export async function renderFokusCard(d: FokusCardData): Promise<string> {
 
   const quote = pickQuote(Number(d.totalSeconds), Number(d.streak));
   ctx.fillStyle = QUOTE;
-  ctx.font = `400 26px ${FONT}`;
+  ctx.font = `400 20px ${FONT}`;
   ctx.textAlign = "center";
   const lines = wrapText(ctx, quote, (W - rx) - 80);
   let qy = ay + ar * 2 + 44;
