@@ -85,6 +85,7 @@ export default function Home() {
   const [elapsed, setElapsed] = useState(0); // stopwatch seconds, counts up after Lock in
   const [sessionStart, setSessionStart] = useState(0); // wall-clock ms when session started (proof of presence)
   const [logging, setLogging] = useState(false);
+  const [lastTx, setLastTx] = useState<string | null>(null); // last onchain tx hash (for monadvision link)
   const [showShare, setShowShare] = useState(false);
   const [showWalletPicker, setShowWalletPicker] = useState(false);
   const [customAvatar, setCustomAvatar] = useState<string | null>(null);
@@ -460,7 +461,7 @@ export default function Home() {
       // THIS long, and the monotonic nonce prevents replay inflation.
       const hash = keccak256(encodePacked(["address", "uint256", "uint256"], [address as `0x${string}`, focused, nonce]));
       const sig = await signMessageAsync({ message: { raw: hash as `0x${string}` } } as any);
-      await writeContractAsync({
+      const tx = await writeContractAsync({
         address: FOCUSPROOF_ADDRESS,
         abi: FOCUSPROOF_ABI,
         functionName: "logFocus",
@@ -468,6 +469,7 @@ export default function Home() {
         account: address,
         chain: monadTestnet,
       } as any);
+      setLastTx(typeof tx === "string" ? tx : (tx as any)?.hash ?? null);
       // wait for receipt + refetch onchain progress
       await refetchProg();
       await refetchBadge();
@@ -475,7 +477,7 @@ export default function Home() {
       setStarted(false);
       setElapsed(0);
       setShowShare(true); // show share modal AFTER successful log
-      setMsg("✅ Session logged onchain (signed, replay-proof).");
+      setMsg("✅ Session logged onchain (signed, replay-proof)." + (typeof tx === "string" ? ` View: https://testnet.monadvision.com/tx/${tx}` : ""));
     } catch (e: any) {
       setMsg("❌ " + (e?.shortMessage || e?.message));
     } finally {
