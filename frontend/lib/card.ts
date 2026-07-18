@@ -216,7 +216,7 @@ export async function renderFokusCard(d: FokusCardData): Promise<string> {
   ctx.fillStyle = INK;
   ctx.font = `800 30px ${FONT}`;
   ctx.textAlign = "left";
-  ctx.fillText(d.handle ? `@${d.handle}` : "anon", M, idY);
+  ctx.fillText(d.handle ? (d.handle.startsWith("@") ? d.handle : `@${d.handle}`) : "anon", M, idY);
 
   // ===== RIGHT PANEL =====
   const rx = leftW;

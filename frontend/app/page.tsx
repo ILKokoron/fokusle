@@ -64,6 +64,7 @@ export default function Home() {
   const [prog, setProg] = useState<Progress | null>(null);
   const [badges, setBadges] = useState<number[]>([]);
   const [msg, setMsg] = useState("");
+  const [toast, setToast] = useState<{ text: string; type: "ok" | "error" } | null>(null);
   const [tab, setTab] = useState<"focus" | "progress" | "pet" | "profile" | "settings">("focus");
   const [theme, setTheme] = useState<"dark" | "light">("dark");
 
@@ -333,7 +334,8 @@ export default function Home() {
   const displayName =
     nnsProfile?.primaryName ||
     (nicknameData as string) ||
-    (address ? `${address.slice(0, 6)}…${address.slice(-4)}` : "");
+    (address ? `@${address.slice(0,4)}...${address.slice(-2)}` : "");
+  const isHandle = typeof displayName === "string" && displayName.startsWith("@");
 
 
   const { data: leaderboardAddrs } = useReadContract({
@@ -386,14 +388,27 @@ export default function Home() {
     })();
   }, [leaderboardAddrs, publicClient]);
 
+  // auto sign-in: pas connect, langsung trigger sign (gak ada card manual)
+  useEffect(() => {
+    if (isConnected && !authed && address) {
+      (async () => {
+        try {
+          await (signMessageAsync as any)({ account: address as `0x${string}`, message: `FokusLe login\nWallet: ${address}\nSign to prove ownership.` });
+          setAuthed(true);
+        } catch {
+          // user rejected — biarkan di connect screen, bisa retry
+        }
+      })();
+    }
+  }, [isConnected, authed, address, signMessageAsync]);
+
   const signIn = useCallback(async () => {
     if (!address) return;
     try {
-      await signMessageAsync({ account: address, message: `FokusLe login\nWallet: ${address}\nSign to prove ownership.` });
+      await (signMessageAsync as any)({ account: address as `0x${string}`, message: `FokusLe login\nWallet: ${address}\nSign to prove ownership.` });
       setAuthed(true);
-      setMsg("");
     } catch {
-      setMsg("❌ Sign cancelled.");
+      setToast({ text: "❌ Sign cancelled.", type: "error" });
     }
   }, [address, signMessageAsync]);
 
@@ -423,7 +438,7 @@ export default function Home() {
     setStarted(false);
     setRunning(false);
     setElapsed(0);
-    setMsg("❌ Session failed — you left. Discipline means staying.");
+    setToast({ text: "❌ Session failed — you left. Discipline means staying.", type: "error" });
   }, []);
 
   useEffect(() => {
@@ -440,16 +455,15 @@ export default function Home() {
     // which can be tampered). This is what gets logged onchain.
     const elapsedSec = Math.max(0, Math.floor((Date.now() - sessionStart) / 1000));
     const focused = BigInt(Math.max(elapsedSec, elapsed));
-    if (focused <= 0n) { setMsg("⚠️ Timer belum selesai."); return; }
+    if (focused <= 0n) { setToast({ text: "⚠️ Timer belum selesai.", type: "error" }); return; }
     // Replay-proof nonce: must equal the next unused session index.
     const nonce = (prog?.sessionCount ?? 0n) + 1n;
     setLogging(true);
-    setMsg("");
     try {
       // Wallet signs (address, secondsFocused, nonce) — attests THIS wallet focused
       // THIS long, and the monotonic nonce prevents replay inflation.
       const hash = keccak256(encodePacked(["address", "uint256", "uint256"], [address as `0x${string}`, focused, nonce]));
-      const sig = await signMessageAsync({ message: { raw: hash as `0x${string}` } } as any);
+      const sig = await (signMessageAsync as any)({ account: address as `0x${string}`, message: { raw: hash as `0x${string}` } });
       const tx = await writeContractAsync({
         address: FOCUSPROOF_ADDRESS,
         abi: FOCUSPROOF_ABI,
@@ -466,9 +480,9 @@ export default function Home() {
       setStarted(false);
       setElapsed(0);
       setShowShare(true); // show share modal AFTER successful log
-      setMsg("✅ Session logged onchain (signed, replay-proof)." + (typeof tx === "string" ? ` View: https://testnet.monadvision.com/tx/${tx}` : ""));
+      setToast({ text: "✅ Session logged onchain (signed, replay-proof)." + (typeof tx === "string" ? ` View: https://testnet.monadvision.com/tx/${tx}` : ""), type: "ok" });
     } catch (e: any) {
-      setMsg("❌ " + (e?.shortMessage || e?.message));
+      setToast({ text: "❌ " + (e?.shortMessage || e?.message), type: "error" });
     } finally {
       setLogging(false);
     }
@@ -500,7 +514,7 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
     if (platform === "dc") {
       navigator.clipboard.writeText(text);
       downloadCard();
-      setMsg("📋 Lock-In card copied + downloaded — paste to Discord.");
+      setToast({ text: "📋 Lock-In card copied + downloaded — paste to Discord.", type: "ok" });
       return;
     }
     // X: text-only redirect + auto-download flex card PNG (user attaches manually)
@@ -532,7 +546,7 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
     a.download = `fokusle-lockedin-${address?.slice(0, 6)}.png`;
     a.click();
     URL.revokeObjectURL(url);
-    setMsg("🖼️ Lock-In Card downloaded.");
+    setToast({ text: "🖼️ Lock-In Card downloaded.", type: "ok" });
   };
 
   const cardToday = fmt(prog?.weeklySeconds ?? 0n);
@@ -566,8 +580,8 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
         // SPLASH (E+D): philosophical quote + visual orb + tap to begin
         <div onClick={() => setScreen("connect")} style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 28px", cursor: "pointer", textAlign: "center" }}>
           <div style={{ position: "relative", width: 180, height: 180, marginBottom: 40 }}>
-            <div style={{ position: "absolute", inset: 0, borderRadius: "999px", background: "radial-gradient(circle, rgba(139,123,255,0.55) 0%, rgba(110,84,255,0.15) 55%, transparent 72%)", filter: "blur(28px)", animation: "fkfloat 4s ease-in-out infinite" }} />
-            <div style={{ position: "absolute", inset: 34, borderRadius: "999px", border: "1.5px solid rgba(255,255,255,0.25)", boxShadow: "0 0 30px rgba(110,84,255,0.35)" }} />
+            <div style={{ position: "absolute", inset: 0, borderRadius: "999px", background: "radial-gradient(circle, rgba(139,123,255,0.45) 0%, rgba(110,84,255,0.12) 55%, transparent 72%)", filter: "blur(28px)", animation: "fkfloat 4s ease-in-out infinite" }} />
+            <div style={{ position: "absolute", inset: 28, borderRadius: "999px", border: "2px solid transparent", background: "conic-gradient(from 0deg, rgba(255,255,255,0.05), rgba(110,84,255,0.7), rgba(255,255,255,0.05)) border-box", WebkitMask: "linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0)", WebkitMaskComposite: "xor", maskComposite: "exclude", animation: "fkspin 8s linear infinite", boxShadow: "0 0 30px rgba(110,84,255,0.3)" }} />
           </div>
           <div style={{ fontSize: 19, fontWeight: 700, color: "#fff", fontFamily: "var(--font-grotesk), sans-serif", lineHeight: 1.5, maxWidth: 300, letterSpacing: 0.2 }}>
             Focus is the only flex that can't be faked. So we put it onchain.
@@ -575,7 +589,7 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
           <div style={{ marginTop: 46, fontSize: 11, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: 2 }}>
             Tap to begin
           </div>
-          <style>{`@keyframes fkfloat { 0%,100% { transform: translateY(0); opacity: 0.85; } 50% { transform: translateY(-8px); opacity: 1; } }`}</style>
+          <style>{`@keyframes fkfloat { 0%,100% { transform: translateY(0); opacity: 0.85; } 50% { transform: translateY(-8px); opacity: 1; } } @keyframes fkspin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
         </div>
       ) : (
       <div style={S.device as any}>
@@ -584,22 +598,24 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: 640, textAlign: "center", padding: "0 16px" }}>
               <div style={{ width: 76, height: 76, borderRadius: 22, background: "linear-gradient(150deg,#8b7bff,#6E54FF)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 32, color: "#fff", fontFamily: "var(--font-grotesk), sans-serif", boxShadow: "0 12px 30px rgba(110,84,255,0.4)", marginBottom: 18 }}>F</div>
               <h2 style={{ fontSize: 24, margin: "0 0 6px", fontFamily: "var(--font-grotesk), sans-serif", color: T.text }}>FokusLe</h2>
-              <p style={{ color: T.muted, fontSize: 13, margin: "0 0 30px", lineHeight: 1.5 }}>Proof of Focus. Proof of Discipline.<br />Connect your wallet to start a session.</p>
-              <div style={{ width: "100%" }}>
+              <p style={{ color: T.muted, fontSize: 14, margin: "0 0 30px", lineHeight: 1.5, maxWidth: 260 }}>Are you ready to lock in?</p>
+              <div style={{ width: "100%", display: "flex", justifyContent: "center" }}>
                 <ConnectButton />
               </div>
-              <p style={{ color: T.muted, fontSize: 11, marginTop: 14 }}>Choose your wallet to begin.</p>
             </div>
           ) : !authed ? (
-            <div style={{ ...S.card, marginTop: 60, textAlign: "center" }}>
-              <p style={{ margin: "0 0 12px", fontSize: 13, color: T.muted }}>{shortAddr(address)}</p>
-              <button style={{ width: "100%", background: "linear-gradient(150deg,#8b7bff,#6E54FF)", color: "#fff", border: "none", padding: 14, borderRadius: 14, fontWeight: 700, fontSize: 14, cursor: "pointer", boxShadow: "0 8px 24px rgba(110,84,255,0.3)" }} onClick={signIn}>
-                Sign in
-              </button>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: 640, textAlign: "center", padding: "0 16px" }}>
+              <p style={{ color: T.muted, fontSize: 13 }}>Approve the sign request in your wallet to continue…</p>
             </div>
           ) : (
             <>
-              {msg && <div style={{ background: T.card2, border: `1px solid ${T.border}`, color: T.text, padding: 10, borderRadius: 10, marginBottom: 12, fontSize: 12 }}>{msg}</div>}
+              {toast && (
+                <div style={{ position: "fixed", top: 16, left: "50%", transform: "translateX(-50%)", zIndex: 120, background: toast.type === "error" ? "rgba(60,20,30,0.95)" : "rgba(20,12,40,0.95)", border: `1px solid ${toast.type === "error" ? "rgba(255,80,110,0.5)" : "rgba(110,84,255,0.5)"}`, color: "#fff", padding: "10px 16px", borderRadius: 12, fontSize: 12, maxWidth: 320, textAlign: "center", boxShadow: "0 10px 30px rgba(0,0,0,0.4)", animation: "fktoast 0.25s ease-out" }}>
+                  {toast.text}
+                </div>
+              )}
+              {toast && <style>{`@keyframes fktoast { from { opacity: 0; transform: translate(-50%, -8px); } to { opacity: 1; transform: translate(-50%, 0); } }`}</style>}
+              {(() => { if (toast) setTimeout(() => setToast(null), 4000); return null; })()}
 
               {/* FOCUS TAB */}
               {tab === "focus" && (
@@ -612,7 +628,7 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, background: GHOST.bg, borderRadius: 999, padding: "5px 10px 5px 6px" }}>
                         <div style={{ width: 7, height: 7, borderRadius: 999, background: "#4ADE80" }} />
-                        <div style={{ fontSize: 11, fontWeight: 600, color: GHOST.text }}>{displayName}</div>
+                        <div style={{ fontSize: isHandle ? 11 : 13, fontWeight: 600, color: GHOST.text, maxWidth: 110, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{displayName}</div>
                       </div>
                     </div>
 
@@ -629,6 +645,9 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
                           strokeDasharray={540} strokeDashoffset={540 - (540 * Math.min(sessionPct, 100)) / 100}
                           strokeLinecap="round" transform="rotate(-90 100 100)" style={{ transition: "stroke-dashoffset 1s linear", filter: "drop-shadow(0 0 8px rgba(110,84,255,0.45))" }} />
                       </svg>
+                      <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", textAlign: "center", pointerEvents: "none" }}>
+                        <div style={{ fontSize: 30, fontWeight: 700, color: "#fff", fontFamily: "var(--font-mono), monospace" }}>{sessionPct}%</div>
+                      </div>
                     </div>
                     {/* timer number BELOW the ring (separate, not overlapping) */}
                     <div style={{ textAlign: "center", marginTop: 2 }}>
@@ -798,7 +817,7 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
                   </div>
                   <div style={{ ...S.card, textAlign: "center", background: "linear-gradient(160deg, rgba(110,84,255,0.12) 0%, rgba(42,31,102,0.06) 60%, transparent 100%)", border: "1px solid rgba(110,84,255,0.30)", padding: 20 }}>
                     <img src={customAvatar || nnsProfile?.avatar || `https://api.dicebear.com/7.x/shapes/svg?seed=${address}`} style={{ width: 68, height: 68, borderRadius: 999, margin: "0 auto 12px", display: "block", border: "2px solid rgba(110,84,255,0.5)", boxShadow: "0 6px 18px rgba(110,84,255,0.25)" }} />
-                    <div style={{ fontWeight: 700, fontSize: 17, color: T.text, fontFamily: "var(--font-grotesk), sans-serif" }}>{displayName}</div>
+                    <div style={{ fontWeight: 700, fontSize: isHandle ? 14 : 17, color: T.text, fontFamily: "var(--font-grotesk), sans-serif" }}>{displayName}</div>
                     <div style={{ color: T.muted, fontSize: 12, marginTop: 4, wordBreak: "break-all", padding: "0 8px" }}>{address}</div>
                   </div>
 
@@ -930,10 +949,14 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
 
         {lockPopup && (
           <div style={{ position: "fixed", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 90, pointerEvents: "none" }}>
-            <div style={{ background: "rgba(20,12,40,0.92)", border: `1px solid rgba(110,84,255,0.5)`, borderRadius: 16, padding: "18px 26px", textAlign: "center", boxShadow: "0 12px 40px rgba(110,84,255,0.25)", backdropFilter: "blur(8px)", animation: "fkpop 0.25s ease-out" }}>
-              <div style={{ fontSize: 30, marginBottom: 6 }}>🔒</div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: "#fff", fontFamily: "var(--font-grotesk), sans-serif", letterSpacing: 0.3 }}>Locked in</div>
-              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.7)", marginTop: 2 }}>Focus now.</div>
+            <div style={{ background: "rgba(20,12,40,0.92)", border: `1px solid rgba(110,84,255,0.5)`, borderRadius: 16, padding: "16px 34px", textAlign: "center", minWidth: 300, display: "flex", alignItems: "center", gap: 16, boxShadow: "0 12px 40px rgba(110,84,255,0.25)", backdropFilter: "blur(8px)", animation: "fkpop 0.25s ease-out" }}>
+              <div style={{ width: 42, height: 42, borderRadius: 12, background: "linear-gradient(150deg,#8b7bff,#6E54FF)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 6px 18px rgba(110,84,255,0.4)" }}>
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fff" strokeWidth="2.2"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+              </div>
+              <div style={{ textAlign: "left" }}>
+                <div style={{ fontSize: 16, fontWeight: 700, color: "#fff", fontFamily: "var(--font-grotesk), sans-serif", letterSpacing: 0.3 }}>Locked in</div>
+                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.7)", marginTop: 1 }}>Focus now.</div>
+              </div>
             </div>
           </div>
         )}
@@ -941,7 +964,7 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
       )}
 
       <p style={{ textAlign: "center", color: "#555c6e", fontSize: 11, marginTop: -4 }}>
-        FokusLe · Monad Testnet · Wallet = identity. Signed + replay-proof. No staking.
+        Fokusle
       </p>
     </div>
   );
