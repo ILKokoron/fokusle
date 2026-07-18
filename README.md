@@ -5,7 +5,11 @@
 > "Build something practical that solves a real problem YOU have."
 
 ## The problem
-In crypto everyone flexes PnL. But the thing that actually builds a life, consistency, is invisible. I'm a dopamine addict; I lose focus daily. Existing focus apps nag but have zero consequence. And most "onchain" trackers are just databases with gas, you can log any number.
+When I looked at this hackathon's goal, solving a real everyday problem or even one your friends have, I realized I constantly lose focus while working on my laptop. The moment something loads, I get thirsty for dopamine and grab my phone for a quick hit without even noticing. I've been doing this for years without realizing it.
+
+But there's a bigger problem. Similar apps can't show how locked in you actually were while doing the work. In an era where validation matters more than ever to some people, that makes the whole thing feel not worth doing. That's why I built this app for the hackathon. Why did I make it? Because watching people flex PnL on the timeline gets more boring and honestly a bit corny over time. So I built something not everyone has, proof of how locked in you were during your productive hours.
+
+Sure, there's the argument that users could cheat, or use a second device to keep the timer running. But is that kind of win what someone serious about their time and self-respect is actually after? Of course not. So lock in, starting now, with Fokusle, where your productive time finally gets the respect it deserves.
 
 ## The solution
 Fokusle makes focus **verifiable**. You commit to a session by signing a message (wallet = identity). The signature is checked onchain before any session counts. No commit, no log. No fake hours.
