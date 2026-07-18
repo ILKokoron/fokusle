@@ -634,13 +634,17 @@ export default function Home() {
                     {leaderboard.length === 0 ? (
                       <div style={{ color: T.muted, fontSize: 12, textAlign: "center", padding: "8px 0" }}>No sessions logged yet on this contract.</div>
                     ) : (
-                      leaderboard.slice(0, 3).map((row, i) => (
+                      leaderboard.slice(0, 3).map((row, i) => {
+                        const isMe = row.addr.toLowerCase() === address?.toLowerCase();
+                        const av = isMe && customAvatar ? customAvatar : `https://api.dicebear.com/7.x/shapes/svg?seed=${row.addr}`;
+                        return (
                         <div key={row.addr} style={{ ...S.feedItem, borderBottom: i === Math.min(2, leaderboard.length - 1) ? "none" : S.feedItem.borderBottom }}>
-                          <div style={{ width: 34, height: 34, borderRadius: 999, backgroundImage: T.grad, flexShrink: 0 }} />
-                          <div><b style={{ fontSize: 13 }}>{i + 1}. {row.name}</b></div>
+                          <img src={av} style={{ width: 34, height: 34, borderRadius: 999, flexShrink: 0, border: "1px solid rgba(110,84,255,0.4)", objectFit: "cover" }} />
+                          <div><b style={{ fontSize: 13 }}>{i + 1}. {row.name}{isMe ? " (You)" : ""}</b></div>
                           <div style={S.streakTag}>{row.streak}d</div>
                         </div>
-                      ))
+                        );
+                      })
                     )}
                   </div>
                 </>
@@ -676,13 +680,17 @@ export default function Home() {
                   <div style={S.card}>
                     {leaderboard.length === 0 ? (
                       <div style={{ color: T.muted, fontSize: 12, textAlign: "center", padding: "8px 0" }}>Nobody has logged a session yet — be first.</div>
-                    ) : leaderboard.slice(0, 10).map((row, i) => (
+                    ) : leaderboard.slice(0, 10).map((row, i) => {
+                      const isMe = row.addr.toLowerCase() === address?.toLowerCase();
+                      const av = isMe && customAvatar ? customAvatar : `https://api.dicebear.com/7.x/shapes/svg?seed=${row.addr}`;
+                      return (
                       <div key={row.addr} style={S.feedItem}>
-                        <div style={{ width: 34, height: 34, borderRadius: 999, backgroundImage: T.grad, flexShrink: 0 }} />
-                        <div><b style={{ fontSize: 13 }}>{i + 1}. {row.name}{row.addr.toLowerCase() === address?.toLowerCase() ? " (You)" : ""}</b></div>
+                        <img src={av} style={{ width: 34, height: 34, borderRadius: 999, flexShrink: 0, border: "1px solid rgba(110,84,255,0.4)", objectFit: "cover" }} />
+                        <div><b style={{ fontSize: 13 }}>{i + 1}. {row.name}{isMe ? " (You)" : ""}</b></div>
                         <div style={S.streakTag}>{row.streak}d</div>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
 
                   <div style={S.sectionTitle}><h3 style={S.sectionH3}>Badges</h3></div>
