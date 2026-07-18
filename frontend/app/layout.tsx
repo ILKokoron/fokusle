@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Space_Grotesk, Inter, Roboto_Mono } from "next/font/google";
 import { Providers } from "./providers";
+import "@rainbow-me/rainbowkit/styles.css";
 
 export const metadata: Metadata = {
   title: "Fokusle — Proof of Focus. Proof of Discipline.",

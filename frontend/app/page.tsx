@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useAccount, useReadContract, useWriteContract, useSignMessage, usePublicClient, useConnect, useDisconnect } from "wagmi";
+import { useAccount, useReadContract, useWriteContract, useSignMessage, usePublicClient, useDisconnect } from "wagmi";
 import { keccak256, encodePacked, encodeAbiParameters, parseAbiParameters } from "viem";
 import { FOCUSPROOF_ADDRESS, FOCUSPROOF_ABI, BADGE_META, MONANIMAL_NAMES } from "../lib/abi";
-import { WALLET_PICKER } from "../lib/wagmi";
-import { renderFokusCard, dataUrlToBlob, type CardBadge } from "../lib/card";
 import { monadTestnet } from "../lib/wagmi";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { renderFokusCard, dataUrlToBlob, type CardBadge } from "../lib/card";
+
 
 type Progress = {
   totalSeconds: bigint;
@@ -55,20 +56,6 @@ const themes = {
 
 export default function Home() {
   const { address, isConnected } = useAccount();
-  const { connect, connectors, isPending: isConnectPending } = useConnect();
-
-  // Open wallet picker modal instead of auto-connecting.
-  const connectWallet = () => setShowWalletPicker(true);
-
-  const pickConnector = async (id: string) => {
-    setShowWalletPicker(false);
-    const c = connectors.find((x) => x.id === id) || connectors[0];
-    try {
-      await connect({ connector: c });
-    } catch (e: any) {
-      setMsg("❌ " + (e?.shortMessage || e?.message || "wallet connection failed"));
-    }
-  };
   const { disconnect } = useDisconnect();
   const { writeContract, writeContractAsync, isPending } = useWriteContract();
   const { signMessageAsync } = useSignMessage();
@@ -88,7 +75,7 @@ export default function Home() {
   const [lastTx, setLastTx] = useState<string | null>(null); // last onchain tx hash (for monadvision link)
   const [lockPopup, setLockPopup] = useState(false); // centered "locked in" popup (auto-dismiss)
   const [showShare, setShowShare] = useState(false);
-  const [showWalletPicker, setShowWalletPicker] = useState(false);
+  const [screen, setScreen] = useState<"splash" | "connect">("splash"); // E+D: splash first, then connect
   const [customAvatar, setCustomAvatar] = useState<string | null>(null);
 
   // load saved custom pfp from localStorage on mount
@@ -575,6 +562,22 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
 
   return (
     <div style={{ background: theme === "dark" ? "#0a0712" : "#eee9ff", minHeight: "100vh", padding: "20px 0", backgroundImage: GRID, backgroundSize: "26px 26px" }}>
+      {screen === "splash" ? (
+        // SPLASH (E+D): philosophical quote + visual orb + tap to begin
+        <div onClick={() => setScreen("connect")} style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 28px", cursor: "pointer", textAlign: "center" }}>
+          <div style={{ position: "relative", width: 180, height: 180, marginBottom: 40 }}>
+            <div style={{ position: "absolute", inset: 0, borderRadius: "999px", background: "radial-gradient(circle, rgba(139,123,255,0.55) 0%, rgba(110,84,255,0.15) 55%, transparent 72%)", filter: "blur(28px)", animation: "fkfloat 4s ease-in-out infinite" }} />
+            <div style={{ position: "absolute", inset: 34, borderRadius: "999px", border: "1.5px solid rgba(255,255,255,0.25)", boxShadow: "0 0 30px rgba(110,84,255,0.35)" }} />
+          </div>
+          <div style={{ fontSize: 19, fontWeight: 700, color: "#fff", fontFamily: "var(--font-grotesk), sans-serif", lineHeight: 1.5, maxWidth: 300, letterSpacing: 0.2 }}>
+            Focus is the only flex that can't be faked. So we put it onchain.
+          </div>
+          <div style={{ marginTop: 46, fontSize: 11, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: 2 }}>
+            Tap to begin
+          </div>
+          <style>{`@keyframes fkfloat { 0%,100% { transform: translateY(0); opacity: 0.85; } 50% { transform: translateY(-8px); opacity: 1; } }`}</style>
+        </div>
+      ) : (
       <div style={S.device as any}>
         <div style={S.screen}>
           {!isConnected ? (
@@ -582,10 +585,10 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
               <div style={{ width: 76, height: 76, borderRadius: 22, background: "linear-gradient(150deg,#8b7bff,#6E54FF)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 32, color: "#fff", fontFamily: "var(--font-grotesk), sans-serif", boxShadow: "0 12px 30px rgba(110,84,255,0.4)", marginBottom: 18 }}>F</div>
               <h2 style={{ fontSize: 24, margin: "0 0 6px", fontFamily: "var(--font-grotesk), sans-serif", color: T.text }}>FokusLe</h2>
               <p style={{ color: T.muted, fontSize: 13, margin: "0 0 30px", lineHeight: 1.5 }}>Proof of Focus. Proof of Discipline.<br />Connect your wallet to start a session.</p>
-              <button onClick={connectWallet} style={{ width: "100%", background: "linear-gradient(150deg,#8b7bff,#6E54FF)", color: "#fff", border: "none", padding: "14px 24px", borderRadius: 14, fontWeight: 700, fontSize: 15, cursor: "pointer", boxShadow: "0 8px 24px rgba(110,84,255,0.35)" }}>
-                {isConnectPending ? "Connecting..." : "Connect Wallet"}
-              </button>
-              <p style={{ color: T.muted, fontSize: 11, marginTop: 10 }}>Choose your wallet to begin.</p>
+              <div style={{ width: "100%" }}>
+                <ConnectButton />
+              </div>
+              <p style={{ color: T.muted, fontSize: 11, marginTop: 14 }}>Choose your wallet to begin.</p>
             </div>
           ) : !authed ? (
             <div style={{ ...S.card, marginTop: 60, textAlign: "center" }}>
@@ -613,7 +616,7 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
                       </div>
                     </div>
 
-                    <div style={{ display: "flex", justifyContent: "center", margin: "6px 0 10px", position: "relative" }}>
+                    <div style={{ display: "flex", justifyContent: "center", margin: "6px 0 4px", position: "relative" }}>
                       <svg width="200" height="200" viewBox="0 0 200 200">
                         <defs>
                           <linearGradient id="ring" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -621,18 +624,19 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
                             <stop offset="100%" stopColor="#6E54FF" />
                           </linearGradient>
                         </defs>
-                        <circle cx="100" cy="100" r="86" stroke="rgba(255,255,255,0.12)" strokeWidth="14" fill="none" />
-                        <circle cx="100" cy="100" r="86" stroke="url(#ring)" strokeWidth="14" fill="none"
+                        <circle cx="100" cy="100" r="86" stroke="rgba(255,255,255,0.14)" strokeWidth="14" fill="none" />
+                        <circle cx="100" cy="100" r="86" stroke="#ffffff" strokeWidth="14" fill="none"
                           strokeDasharray={540} strokeDashoffset={540 - (540 * Math.min(sessionPct, 100)) / 100}
-                          strokeLinecap="round" transform="rotate(-90 100 100)" style={{ transition: "stroke-dashoffset 1s linear", filter: "drop-shadow(0 0 6px rgba(110,84,255,0.5))" }} />
+                          strokeLinecap="round" transform="rotate(-90 100 100)" style={{ transition: "stroke-dashoffset 1s linear", filter: "drop-shadow(0 0 8px rgba(110,84,255,0.45))" }} />
                       </svg>
-                      <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", textAlign: "center" }}>
-                        <div style={{ fontSize: 44, fontWeight: 700, color: "#fff", fontFamily: "var(--font-mono), monospace", letterSpacing: 1 }}>
-                          {running || started ? fmtClock(elapsed) : "00:00"}
-                        </div>
-                        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.8)", textTransform: "uppercase", letterSpacing: 1, marginTop: 2 }}>
-                          {running ? "Focusing…" : started ? "Paused" : "Ready"}
-                        </div>
+                    </div>
+                    {/* timer number BELOW the ring (separate, not overlapping) */}
+                    <div style={{ textAlign: "center", marginTop: 2 }}>
+                      <div style={{ fontSize: 44, fontWeight: 700, color: "#fff", fontFamily: "var(--font-mono), monospace", letterSpacing: 1 }}>
+                        {running || started ? fmtClock(elapsed) : "00:00"}
+                      </div>
+                      <div style={{ fontSize: 11, color: "rgba(255,255,255,0.8)", textTransform: "uppercase", letterSpacing: 1, marginTop: 2 }}>
+                        {running ? "Focusing…" : started ? "Paused" : "Ready"}
                       </div>
                     </div>
 
@@ -792,10 +796,10 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
                       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 112.83 2.83l.06-.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" /></svg>
                     </div>
                   </div>
-                  <div style={{ ...S.card, textAlign: "center", background: "linear-gradient(160deg, rgba(110,84,255,0.12) 0%, rgba(42,31,102,0.06) 60%, transparent 100%)", border: "1px solid rgba(110,84,255,0.30)" }}>
-                    <img src={customAvatar || nnsProfile?.avatar || `https://api.dicebear.com/7.x/shapes/svg?seed=${address}`} style={{ width: 64, height: 64, borderRadius: 999, margin: "0 auto 10px", display: "block", border: "2px solid rgba(110,84,255,0.5)", boxShadow: "0 6px 18px rgba(110,84,255,0.25)" }} />
+                  <div style={{ ...S.card, textAlign: "center", background: "linear-gradient(160deg, rgba(110,84,255,0.12) 0%, rgba(42,31,102,0.06) 60%, transparent 100%)", border: "1px solid rgba(110,84,255,0.30)", padding: 20 }}>
+                    <img src={customAvatar || nnsProfile?.avatar || `https://api.dicebear.com/7.x/shapes/svg?seed=${address}`} style={{ width: 68, height: 68, borderRadius: 999, margin: "0 auto 12px", display: "block", border: "2px solid rgba(110,84,255,0.5)", boxShadow: "0 6px 18px rgba(110,84,255,0.25)" }} />
                     <div style={{ fontWeight: 700, fontSize: 17, color: T.text, fontFamily: "var(--font-grotesk), sans-serif" }}>{displayName}</div>
-                    <div style={{ color: T.muted, fontSize: 11, marginTop: 2 }}>{address}</div>
+                    <div style={{ color: T.muted, fontSize: 12, marginTop: 4, wordBreak: "break-all", padding: "0 8px" }}>{address}</div>
                   </div>
 
                   {prog && (
@@ -909,31 +913,6 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
           </div>
         )}
 
-        {showWalletPicker && (
-          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
-            <div style={{ width: 300, background: T.card, border: `1px solid ${T.border}`, borderRadius: 18, padding: 20 }}>
-              <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4, fontFamily: "var(--font-grotesk), sans-serif" }}>Connect a wallet</div>
-              <p style={{ color: T.muted, fontSize: 12, margin: "0 0 14px" }}>Pick how you want to sign in.</p>
-              {WALLET_PICKER.map((w) => (
-                <button
-                  key={w.id}
-                  onClick={() => pickConnector(w.id)}
-                  style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, background: GHOST.bg, border: `1px solid ${GHOST.border}`, borderRadius: 12, padding: "12px 14px", marginBottom: 8, cursor: "pointer", textAlign: "left" }}
-                >
-                  <span style={{ fontSize: 22 }}>{w.emoji}</span>
-                  <span style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: T.text }}>{w.name}</div>
-                    <div style={{ fontSize: 11, color: T.muted }}>{w.note}</div>
-                  </span>
-                </button>
-              ))}
-              <button onClick={() => setShowWalletPicker(false)} style={{ width: "100%", background: "transparent", color: T.muted, border: "none", padding: 10, fontSize: 13, cursor: "pointer", marginTop: 2 }}>
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
-
         {showShare && (
           <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
             <div style={{ width: 300, background: T.card, border: `1px solid ${T.border}`, borderRadius: 18, padding: 20, textAlign: "center" }}>
@@ -959,6 +938,7 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
           </div>
         )}
       </div>
+      )}
 
       <p style={{ textAlign: "center", color: "#555c6e", fontSize: 11, marginTop: -4 }}>
         FokusLe · Monad Testnet · Wallet = identity. Signed + replay-proof. No staking.
