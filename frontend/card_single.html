@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>body{margin:0;background:#000}canvas{display:block}</style></head>
+<body><canvas id="c"></canvas><script>
+const W=1200,H=675;
+const fmt=s=>{const sec=Number(s);const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60);return `${h}h ${m.toString().padStart(2,'0')}m`;};
+const d={handle:"salmo.nad",wallet:"0xe5952336bec8baf564a01f4ddd211128c38b255e",weeklySeconds:16200n,totalSeconds:5400n,streak:7n,xp:270n,level:2n};
+const P={
+  mono:{INK:"#ffffff",INK_DIM:"#9aa0a6",INK_FAINT:"#5f646b",PANEL:"#141414",LINE:"#2a2a2a",ACCENT:"#e6e6e6",G1:"#101010",G2:"#0a0a0a"},
+  purple:{INK:"#ffffff",INK_DIM:"#c4b5ff",INK_FAINT:"#9d7bff",PANEL:"#15102e",LINE:"#3a2d6e",ACCENT:"#9d7bff",G1:"#1e1147",G2:"#0a0518"},
+  red:{INK:"#ffffff",INK_DIM:"#ff8a8a",INK_FAINT:"#ff4d4d",PANEL:"#2a0a0a",LINE:"#5a1a1a",ACCENT:"#ff3b3b",G1:"#3a0a0a",G2:"#140404"}
+}[location.hash.slice(1)||"mono"];
+const cv=document.getElementById('c'); cv.width=W; cv.height=H; const ctx=cv.getContext('2d');
+const bg=ctx.createLinearGradient(0,0,0,H); bg.addColorStop(0,P.G1); bg.addColorStop(1,P.G2); ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+const glow=ctx.createRadialGradient(W/2,120,40,W/2,120,520); glow.addColorStop(0,P.ACCENT+"33"); glow.addColorStop(1,P.ACCENT+"00"); ctx.fillStyle=glow; ctx.fillRect(0,0,W,H);
+const vig=ctx.createRadialGradient(W/2,H,100,W/2,H,700); vig.addColorStop(0,P.ACCENT+"00"); vig.addColorStop(1,"rgba(0,0,0,0.35)"); ctx.fillStyle=vig; ctx.fillRect(0,0,W,H);
+ctx.strokeStyle="rgba(255,255,255,0.04)"; ctx.lineWidth=1;
+for(let x=0;x<=W;x+=48){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+for(let y=0;y<=H;y+=48){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+ctx.strokeStyle=P.LINE; ctx.lineWidth=2; ctx.strokeRect(28,28,W-56,H-56);
+const M=64;
+ctx.textBaseline="alphabetic";
+ctx.fillStyle=P.INK; ctx.font="800 38px 'Arial Black','Helvetica Neue',Arial,sans-serif"; ctx.textAlign="left"; ctx.fillText("Fokusle",M,96);
+ctx.fillStyle=P.INK_DIM; ctx.font="700 20px 'Helvetica Neue',Arial,sans-serif"; ctx.textAlign="right";
+const tag="PROOF OF FOCUS"; let tx=W-M; for(let i=tag.length-1;i>=0;i--){ctx.fillText(tag[i],tx,92);tx-=ctx.measureText(tag[i]).width+3;}
+ctx.textAlign="left";
+ctx.fillStyle=P.INK; ctx.font="900 84px 'Arial Black','Helvetica Neue',Arial,sans-serif"; ctx.textAlign="center"; ctx.fillText("LOCKED IN",W/2,232);
+ctx.strokeStyle=P.ACCENT; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(W/2-150,258); ctx.lineTo(W/2+150,258); ctx.stroke();
+const stats=[["TODAY",fmt(d.totalSeconds<d.weeklySeconds?d.totalSeconds:d.weeklySeconds)],["WEEKLY",fmt(d.weeklySeconds)],["STREAK",d.streak+" DAYS"],["FOCUS SCORE",Math.min(100,Math.round(Number(d.weeklySeconds)*100/(7*3600*8)))+"%"]];
+const gw=(W-2*M-48)/2,gh=120,gx0=M,gy0=300;
+stats.forEach(([label,val],i)=>{const col=i%2,row=Math.floor(i/2);const x=gx0+col*(gw+48),y=gy0+row*(gh+24);
+  ctx.fillStyle=P.PANEL; ctx.fillRect(x,y,gw,gh); ctx.strokeStyle=P.LINE; ctx.lineWidth=1; ctx.strokeRect(x,y,gw,gh);
+  ctx.fillStyle=P.INK_FAINT; ctx.font="700 18px 'Helvetica Neue',Arial,sans-serif"; ctx.textAlign="left"; ctx.fillText(label,x+22,y+38);
+  ctx.fillStyle=P.INK; ctx.font="900 46px 'Arial Black','Helvetica Neue',Arial,sans-serif"; ctx.fillText(val,x+22,y+92);});
+ctx.fillStyle=P.INK; ctx.font="800 24px 'Helvetica Neue',Arial,sans-serif"; ctx.textAlign="left"; ctx.fillText("@"+d.handle,M,H-56);
+ctx.fillStyle=P.INK_DIM; ctx.font="500 20px 'SFMono-Regular',Consolas,monospace"; ctx.textAlign="right";
+ctx.fillText(d.wallet.slice(0,8)+"…"+d.wallet.slice(-6),W-M,H-56);
+ctx.fillStyle=P.INK_FAINT; ctx.font="600 15px 'Helvetica Neue',Arial,sans-serif"; ctx.textAlign="center";
+ctx.fillText("MONAD TESTNET · WALLET = IDENTITY · COMMIT-REVEAL PROOF",W/2,H-30);
+</script></body></html>
