@@ -446,22 +446,13 @@ export default function Home() {
     const text = shareText();
     if (platform === "dc") {
       navigator.clipboard.writeText(text);
-      setMsg("📋 Lock-In card copied — paste to Discord.");
+      downloadCard();
+      setMsg("📋 Lock-In card copied + downloaded — paste to Discord.");
       return;
     }
-    // X (Opsi A): text + URL to /share page → Twitter renders OG card image automatically
-    const base = window.location.origin;
-    const qs = new URLSearchParams({
-      score: fmtPct(prog?.weeklySeconds ?? 0n, 7n * 3600n * 8n) + "%",
-      today: fmt(prog?.weeklySeconds ?? 0n),
-      weekly: fmt(prog?.weeklySeconds ?? 0n),
-      streak: `${prog?.streak ?? 0n}D`,
-      handle: "@" + (displayName || "fokusle"),
-      wallet: address ? `${address.slice(0, 6)}...${address.slice(-4)}` : "",
-      theme: "purple",
-    });
-    const url = `${base}/share?${qs.toString()}`;
-    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, "_blank");
+    // X: text-only redirect + auto-download flex card PNG (user attaches manually)
+    downloadCard();
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, "_blank");
   };
 
   const downloadCard = () => {
