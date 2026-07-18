@@ -63,6 +63,7 @@ export default function Home() {
   const [dur, setDur] = useState(25 * 60);
   const [left, setLeft] = useState(25 * 60);
   const [logging, setLogging] = useState(false);
+  const [showShare, setShowShare] = useState(false);
 
   const { data: progData, refetch: refetchProg } = useReadContract({
     address: FOCUSPROOF_ADDRESS,
@@ -80,7 +81,17 @@ export default function Home() {
   });
 
   useEffect(() => {
-    if (progData) setProg(progData as unknown as Progress);
+    if (progData) {
+      const p = progData as unknown as bigint[];
+      setProg({
+        totalSeconds: p[0] ?? 0n,
+        weeklySeconds: p[1] ?? 0n,
+        streak: p[2] ?? 0n,
+        xp: p[3] ?? 0n,
+        level: p[4] ?? 0n,
+        sessionCount: p[5] ?? 0n,
+      });
+    }
     if (badgeData) setBadges(badgeData as bigint[] as unknown as number[]);
   }, [progData, badgeData]);
 
@@ -435,12 +446,15 @@ export default function Home() {
     const text = encodeURIComponent(shareText());
     if (platform === "dc") {
       navigator.clipboard.writeText(shareText());
-      setMsg("📋 Lock-In card copied — paste to Discord.");
+      downloadCard();
+      setMsg("📋 Lock-In card copied + downloaded — paste to Discord.");
       return;
     }
+    // X: also auto-generate the flex card PNG locally
+    downloadCard();
     const urls: Record<string, string> = {
       x: `https://twitter.com/intent/tweet?text=${text}`,
-      tg: `https://t.me/share/url?url=https://focusproof.xyz&text=${text}`,
+      tg: `https://t.me/share/url?url=https://fokusle.vercel.app&text=${text}`,
     };
     window.open(urls[platform], "_blank");
   };
@@ -562,7 +576,7 @@ export default function Home() {
                         Lock in
                       </button>
                     ) : running ? (
-                      <button style={{ width: "100%", background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.4)", padding: 14, borderRadius: 14, fontWeight: 700, fontSize: 14, marginTop: 14, cursor: "pointer" }} onClick={() => setRunning(false)}>
+                      <button style={{ width: "100%", background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.4)", padding: 14, borderRadius: 14, fontWeight: 700, fontSize: 14, marginTop: 14, cursor: "pointer" }} onClick={() => { setRunning(false); setShowShare(true); }}>
                         Pause
                       </button>
                     ) : (
@@ -696,8 +710,8 @@ export default function Home() {
               {tab === "profile" && (
                 <>
                   <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 4 }}>
-                    <div style={{ width: 64, height: 26, borderRadius: 999, background: T.card2, border: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: T.accent, fontFamily: "'Roboto Mono', monospace", cursor: "pointer" }} onClick={() => setTab("settings")}>
-                      100% = 60m
+                    <div style={{ width: 32, height: 32, borderRadius: 999, background: T.card2, border: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }} onClick={() => setTab("settings")}>
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 112.83 2.83l.06-.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" /></svg>
                     </div>
                   </div>
                   <div style={{ ...S.card, textAlign: "center" }}>
@@ -798,6 +812,21 @@ export default function Home() {
             <button style={S.tab(tab === "progress")} onClick={() => setTab("progress")}>Progress</button>
             <button style={S.tab(tab === "pet")} onClick={() => setTab("pet")}>Pet</button>
             <button style={S.tab(tab === "profile" || tab === "settings")} onClick={() => setTab("profile")}>Profile</button>
+          </div>
+        )}
+
+        {showShare && (
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
+            <div style={{ width: 300, background: T.card, border: `1px solid ${T.border}`, borderRadius: 18, padding: 20, textAlign: "center" }}>
+              <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 6, fontFamily: "'Space Grotesk', sans-serif" }}>Session locked in</div>
+              <p style={{ color: T.muted, fontSize: 12, margin: "0 0 16px", lineHeight: 1.5 }}>Your flex card is ready. Share it or keep it to yourself.</p>
+              <button onClick={() => { setShowShare(false); share("x"); }} style={{ width: "100%", background: T.accent, color: "#fff", border: "none", padding: 13, borderRadius: 12, fontWeight: 700, fontSize: 14, cursor: "pointer", marginBottom: 8 }}>
+                Share to X
+              </button>
+              <button onClick={() => setShowShare(false)} style={{ width: "100%", background: "transparent", color: T.muted, border: "none", padding: 10, fontSize: 13, cursor: "pointer" }}>
+                OK, just keep it
+              </button>
+            </div>
           </div>
         )}
       </div>
