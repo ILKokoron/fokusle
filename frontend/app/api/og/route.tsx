@@ -19,6 +19,14 @@ export async function GET(req: Request) {
   const themeKey = searchParams.get("theme") ?? "purple";
   const t = THEMES[themeKey] ?? THEMES.purple;
 
+  let fontData: ArrayBuffer;
+  try {
+    const f = await fetch("https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMa1ZL7.woff");
+    fontData = await f.arrayBuffer();
+  } catch {
+    fontData = new ArrayBuffer(0);
+  }
+
   return new ImageResponse(
     (
       <div
@@ -30,7 +38,7 @@ export async function GET(req: Request) {
           backgroundImage:
             "linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)",
           backgroundSize: "40px 40px",
-          fontFamily: "sans-serif",
+          fontFamily: "Inter, sans-serif",
           color: "#fff",
         }}
       >
@@ -101,7 +109,11 @@ export async function GET(req: Request) {
         </div>
       </div>
     ),
-    { width: 1200, height: 630 }
+    {
+      width: 1200,
+      height: 630,
+      fonts: fontData.byteLength > 0 ? [{ name: "Inter", data: fontData, weight: 400, style: "normal" }] : undefined,
+    }
   );
 }
 
