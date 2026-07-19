@@ -262,10 +262,7 @@ export default function Home() {
         const daysAgo = Math.floor((todayStart - (s.ts - (s.ts % 86400))) / 86400);
         if (daysAgo >= 0 && daysAgo <= 6) last7Days[6 - daysAgo] += s.seconds;
         if (daysAgo >= 0 && daysAgo <= 27) {
-          const dowMon = (d.getUTCDay() + 6) % 7; // Mon=0
-          const row = 3 - Math.floor((daysAgo + dowMon) / 7);
-          const idx = row * 7 + dowMon;
-          if (idx >= 0 && idx < 28) last28Days[idx] += s.seconds;
+          last28Days[daysAgo] += s.seconds; // idx 0 = today (top-left), 27 = 27d ago (bottom-right)
         }
       }
 
@@ -870,11 +867,19 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
                   <div style={S.sectionTitle}><h3 style={S.sectionH3}>Your Progress</h3></div>
                   <div style={S.card}>
                     {insights?.last28Days ? (
+                      (() => {
+                      const nowTs = Math.floor(Date.now() / 1000);
+                      const todayStart = nowTs - (nowTs % 86400);
+                      return (
                       <Fragment>
                         <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 5, marginBottom: 7 }}>
-                          {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
-                            <div key={d} style={{ textAlign: "center", fontSize: 12, fontWeight: 600, color: theme === "dark" ? "rgba(255,255,255,0.6)" : "rgba(58,47,102,0.75)" }}>{d}</div>
-                          ))}
+                          {Array.from({ length: 7 }).map((_, col) => {
+                            const dt = new Date((todayStart - col * 86400) * 1000);
+                            const name = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][dt.getUTCDay()];
+                            return (
+                              <div key={col} style={{ textAlign: "center", fontSize: 12, fontWeight: 600, color: theme === "dark" ? "rgba(255,255,255,0.6)" : "rgba(58,47,102,0.75)" }}>{name}</div>
+                            );
+                          })}
                         </div>
                         <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 5 }}>
                           {insights.last28Days.map((sec, i) => {
@@ -891,6 +896,8 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
                           })}
                         </div>
                       </Fragment>
+                      );
+                      })()
                     ) : <div style={{ color: T.muted, fontSize: 12 }}>Loading…</div>}
                   </div>
 
