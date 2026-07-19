@@ -426,10 +426,10 @@ export default function Home() {
     query: { refetchInterval: 10000 },
   });
 
-  const [leaderboard, setLeaderboard] = useState<{ addr: string; streak: number; name: string }[]>([]);
+  const [leaderboard, setLeaderboard] = useState<{ addr: string; streak: number; name: string; avatar?: string | null }[]>([]);
   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
   const [viewAddr, setViewAddr] = useState<string | null>(null); // clicked leaderboard user → modal
-  const [viewData, setViewData] = useState<{ name: string; streak: number; xp: number; level: number; sessions: number; total: number } | null>(null);
+  const [viewData, setViewData] = useState<{ name: string; streak: number; xp: number; level: number; sessions: number; total: number; avatar?: string | null } | null>(null);
   const [viewLoading, setViewLoading] = useState(false);
 
   useEffect(() => {
@@ -439,10 +439,13 @@ export default function Home() {
       try {
         const f = await publicClient.readContract({ address: FOCUSPROOF_ADDRESS, abi: FOCUSPROOF_ABI, functionName: "getProgress", args: [viewAddr] } as any) as any[];
         const nick = await publicClient.readContract({ address: FOCUSPROOF_ADDRESS, abi: FOCUSPROOF_ABI, functionName: "nickname", args: [viewAddr] } as any) as string;
+        let av = "";
+        try { av = await publicClient.readContract({ address: FOCUSPROOF_ADDRESS, abi: FOCUSPROOF_ABI, functionName: "avatar", args: [viewAddr] } as any) as string; } catch {}
         setViewData({
           name: (nick && nick.length > 0 ? nick : `${viewAddr.slice(0, 4)}…${viewAddr.slice(-4)}`),
           streak: Number(f[2] ?? 0), xp: Number(f[3] ?? 0), level: Number(f[4] ?? 0),
           sessions: Number(f[5] ?? 0), total: Number(f[0] ?? 0),
+          avatar: (av && av.length > 0) ? av : null,
         });
       } catch { setViewData(null); }
       setViewLoading(false);
@@ -461,17 +464,21 @@ export default function Home() {
           functionName: "getStreaks",
           args: [addrs],
         } as any) as bigint[];
-
         let names: (string | null)[] = addrs.map(() => null);
+        let avatars: (string | null)[] = addrs.map(() => null);
         try {
-          // priority 1: our own onchain nickname (single call per addr)
-          names = await Promise.all(addrs.map(async (a) => {
+          // priority 1: our own onchain nickname + avatar (single call per addr)
+          const res = await Promise.all(addrs.map(async (a) => {
             try {
               const n = await publicClient.readContract({ address: FOCUSPROOF_ADDRESS, abi: FOCUSPROOF_ABI, functionName: "nickname", args: [a] } as any) as string;
-              return (n && n.length > 0) ? n : null;
-            } catch { return null; }
+              const av = await publicClient.readContract({ address: FOCUSPROOF_ADDRESS, abi: FOCUSPROOF_ABI, functionName: "avatar", args: [a] } as any) as string;
+              return { n: (n && n.length > 0) ? n : null, av: (av && av.length > 0) ? av : null };
+            } catch { return { n: null, av: null }; }
           }));
+          names = res.map((r) => r.n);
+          avatars = res.map((r) => r.av);
         } catch {}
+
         // priority 2: NNS (if nickname empty)
         if (names.some((n) => !n)) {
           try {
@@ -479,6 +486,7 @@ export default function Home() {
             const nnsAbi = [{ type: "function", name: "getProfilesForAddresses", stateMutability: "view", inputs: [{ name: "addrs", type: "address[]" }], outputs: [{ type: "tuple[]", components: [{ name: "addr", type: "address" }, { name: "primaryName", type: "string" }, { name: "avatar", type: "string" }] }] }] as const;
             const profiles = await publicClient.readContract({ address: nnsAddress, abi: nnsAbi, functionName: "getProfilesForAddresses", args: [addrs] } as any) as any[];
             names = names.map((n, i) => n || profiles[i]?.primaryName || null);
+            avatars = avatars.map((av, i) => av || profiles[i]?.avatar || null);
           } catch {}
         }
 
@@ -486,6 +494,7 @@ export default function Home() {
           addr: a,
           streak: Number(streaks[i] ?? 0n),
           name: names[i] || `${a.slice(0, 4)}…${a.slice(-2)}`,
+          avatar: avatars[i] || null,
         })).sort((a, b) => b.streak - a.streak);
 
         setLeaderboard(rows);
@@ -838,7 +847,7 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
                     ) : (
                       leaderboard.slice(0, 3).map((row, i) => {
                         const isMe = row.addr.toLowerCase() === address?.toLowerCase();
-                        const av = isMe && customAvatar ? customAvatar : `https://api.dicebear.com/7.x/shapes/svg?seed=${row.addr}`;
+                        const av = (isMe && customAvatar) ? customAvatar : (row.avatar || `https://api.dicebear.com/7.x/shapes/svg?seed=${row.addr}`);
                         return (
                         <div key={row.addr} style={{ ...S.feedItem, borderBottom: i === Math.min(2, leaderboard.length - 1) ? "none" : S.feedItem.borderBottom }}>
                           <img src={av} style={{ width: 34, height: 34, borderRadius: 999, flexShrink: 0, border: "1px solid rgba(110,84,255,0.4)", objectFit: "cover" }} />
@@ -886,7 +895,7 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
                       <div style={{ color: T.muted, fontSize: 12, textAlign: "center", padding: "8px 0" }}>Nobody has logged a session yet — be first.</div>
                     ) : leaderboard.slice(0, 10).map((row, i) => {
                       const isMe = row.addr.toLowerCase() === address?.toLowerCase();
-                      const av = isMe && customAvatar ? customAvatar : `https://api.dicebear.com/7.x/shapes/svg?seed=${row.addr}`;
+                      const av = (isMe && customAvatar) ? customAvatar : (row.avatar || `https://api.dicebear.com/7.x/shapes/svg?seed=${row.addr}`);
                       return (
                       <div key={row.addr} style={{ ...S.feedItem, cursor: "pointer" }} onClick={() => setViewAddr(row.addr)}>
                         <img src={av} style={{ width: 34, height: 34, borderRadius: 999, flexShrink: 0, border: "1px solid rgba(110,84,255,0.4)", objectFit: "cover" }} />
@@ -1106,6 +1115,7 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
           <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 110 }} onClick={() => setViewAddr(null)}>
             <div style={{ width: 280, background: T.card, border: `1px solid ${T.border}`, borderRadius: 18, padding: 20, textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
               <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 2, fontFamily: "var(--font-grotesk), sans-serif" }}>{viewData?.name || "…"}</div>
+              {viewData?.avatar && <img src={viewData.avatar} style={{ width: 64, height: 64, borderRadius: 999, margin: "8px auto 4px", border: "1px solid rgba(110,84,255,0.4)", objectFit: "cover" }} />}
               <div style={{ fontSize: 11, color: T.muted, marginBottom: 14, wordBreak: "break-all", padding: "0 10px" }}>{viewAddr}</div>
               {viewLoading ? <div style={{ color: T.muted, fontSize: 12 }}>Loading…</div> : viewData ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
