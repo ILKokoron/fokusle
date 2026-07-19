@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback, useRef, Fragment } from "react";
 import { useAccount, useReadContract, useWriteContract, useSignMessage, usePublicClient, useDisconnect } from "wagmi";
-import { keccak256, encodePacked, encodeAbiParameters, parseAbiParameters } from "viem";
 import { FOCUSPROOF_ADDRESS, FOCUSPROOF_ABI, BADGE_META, MONANIMAL_NAMES } from "../lib/abi";
 import { monadTestnet } from "../lib/wagmi";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
