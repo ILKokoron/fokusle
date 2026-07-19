@@ -973,9 +973,6 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
                   <div style={S.card}>
                     <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "13px 0", borderBottom: `1px solid ${T.border}` }}>
                       <img src={customAvatar || nnsProfile?.avatar || `https://api.dicebear.com/7.x/shapes/svg?seed=${address}`} style={{ width: 52, height: 52, borderRadius: 999, border: "2px solid rgba(110,84,255,0.5)", objectFit: "cover" }} />
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 11, color: T.muted }}>Saved onchain — follows your wallet.</div>
-                      </div>
                       <label style={{ background: GHOST.bg, border: `1px solid ${GHOST.border}`, color: GHOST.text, padding: "8px 12px", borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
                         {customAvatar ? "Change" : "Upload"}
                         <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => {
