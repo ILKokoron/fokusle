@@ -96,6 +96,7 @@ export default function Home() {
 
   const [authed, setAuthed] = useState(false);
   const signBusyRef = useRef(false); // guard auto sign-in loop on cancel (ref, no re-render)
+  const [authError, setAuthError] = useState(false); // true when user cancelled sign-in
   const [prog, setProg] = useState<Progress | null>(null);
   const [badges, setBadges] = useState<number[]>([]);
   const [msg, setMsg] = useState("");
@@ -485,13 +486,14 @@ export default function Home() {
   useEffect(() => {
     if (isConnected && !authed && address && !signBusyRef.current) {
       signBusyRef.current = true;
+      setAuthError(false);
       (async () => {
         try {
           await (signMessageAsync as any)({ account: address as `0x${string}`, message: `FokusLe login\nWallet: ${address}\nSign to prove ownership.` });
           setAuthed(true);
         } catch {
+          setAuthError(true);
           setToast({ text: "user cancelled sign in request", type: "error" });
-          setTimeout(() => disconnect(), 1200);
         } finally {
           signBusyRef.current = false;
         }
@@ -699,7 +701,14 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
             </div>
           ) : !authed ? (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: 640, textAlign: "center", padding: "0 16px" }}>
-              <p style={{ color: T.muted, fontSize: 13 }}>Approve the sign request in your wallet to continue…</p>
+              {authError ? (
+                <>
+                  <p style={{ color: T.muted, fontSize: 13, marginBottom: 16 }}>Sign in cancelled.</p>
+                  <button onClick={() => { setAuthError(false); setAuthed(false); }} style={{ background: T.accent, color: "#fff", border: "none", padding: "12px 22px", borderRadius: 12, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>Try again</button>
+                </>
+              ) : (
+                <p style={{ color: T.muted, fontSize: 13 }}>Approve the sign request in your wallet to continue…</p>
+              )}
             </div>
           ) : (
             <>
