@@ -575,15 +575,14 @@ export default function Home() {
     const nonce = (prog?.sessionCount ?? 0n) + 1n;
     setLogging(true);
     try {
-      // Wallet signs (address, secondsFocused, nonce) — attests THIS wallet focused
-      // THIS long, and the monotonic nonce prevents replay inflation.
-      const hash = keccak256(encodePacked(["address", "uint256", "uint256"], [address as `0x${string}`, focused, nonce]));
-      const sig = await (signMessageAsync as any)({ account: address as `0x${string}`, message: { raw: hash as `0x${string}` } });
+      // Single wallet confirmation: msg.sender attests the focusing wallet,
+      // nonce (monotonic) prevents replay inflation. No extra sign-message popup
+      // (which forced mobile wallets to re-open manually).
       const tx = await writeContractAsync({
         address: FOCUSPROOF_ADDRESS,
         abi: FOCUSPROOF_ABI,
         functionName: "logFocus",
-        args: [focused, nonce, sig],
+        args: [focused, nonce],
         account: address,
         chain: monadTestnet,
       } as any);

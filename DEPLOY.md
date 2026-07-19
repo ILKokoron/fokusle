@@ -15,7 +15,7 @@ forge create src/Fokusle.sol:Fokusle \
   --legacy --broadcast
 ```
 Copy address hasilnya ke `frontend/lib/abi.ts` line `FOCUSPROOF_ADDRESS`.
-> Sudah deployed: `0x2936B3C6E8072133f280109acD43e6530661DAC1`
+> Sudah deployed: `0x225791c36d31115e0393f3Baca9bdAc1fa0f2fF7`
 
 ## 3. Isi faucet
 https://testnet.monad.xyz/ → paste wallet address → claim.
@@ -47,6 +47,6 @@ Buka http://localhost:3000
 ## 7. Submission BuildAnything
 - URL web app: `vercel` di folder frontend, atau `npm run dev` + ngrok
 - GitHub repo: public
-- Contract address: 0x2936B3C6E8072133f280109acD43e6530661DAC1
+- Contract address: 0x225791c36d31115e0393f3Baca9bdAc1fa0f2fF7
 - Demo video: YouTube unlisted 3 menit
 - Social post: X thread "Proof of Focus" (Most viral prize)

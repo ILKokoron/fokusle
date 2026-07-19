@@ -27,8 +27,8 @@ From there you stack real onchain proof: total hours, daily streak, weekly focus
 - **Chain**: Monad Testnet (chainId 10143)
 
 ## Contract
-- Address: `0x2936B3C6E8072133f280109acD43e6530661DAC1`
-- Explorer: https://testnet.monadvision.com/address/0x2936B3C6E8072133f280109acD43e6530661DAC1
+- Address: `0x225791c36d31115e0393f3Baca9bdAc1fa0f2fF7`
+- Explorer: https://testnet.monadvision.com/address/0x225791c36d31115e0393f3Baca9bdAc1fa0f2fF7
 - Network: Monad Testnet
 - App: https://fokusle.vercel.app
 

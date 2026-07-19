@@ -1,5 +1,5 @@
 // FokusLe ABI (deployed on Monad Testnet)
-export const FOCUSPROOF_ADDRESS = "0x2936B3C6E8072133f280109acD43e6530661DAC1" as const;
+export const FOCUSPROOF_ADDRESS = "0x225791c36d31115e0393f3Baca9bdAc1fa0f2fF7" as const;
 
 export const FOCUSPROOF_ABI = [
   {
@@ -9,7 +9,6 @@ export const FOCUSPROOF_ABI = [
     inputs: [
       { name: "secondsFocused", type: "uint256" },
       { name: "nonce", type: "uint256" },
-      { name: "sig", type: "bytes" },
     ],
     outputs: [],
   },

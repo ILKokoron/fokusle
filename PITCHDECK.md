@@ -87,7 +87,7 @@ State lives onchain. Nobody can fake your streak.
 ## Slide 6 - Onchain component (Monad)
 
 **Contract:** `Fokusle.sol` (Solidity 0.8.26)
-**Deployed:** `0x2936B3C6E8072133f280109acD43e6530661DAC1`
+**Deployed:** `0x225791c36d31115e0393f3Baca9bdAc1fa0f2fF7`
 **Network:** Monad Testnet (chainId 10143)
 **Tooling:** Foundry deploy + test (all passing)
 

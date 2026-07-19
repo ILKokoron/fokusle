@@ -92,23 +92,17 @@ contract Fokusle {
 
     /// @notice Log a completed focus session directly. No commit step required —
     ///         the frontend runs a local timer and only hits the chain on finish.
-    ///         The wallet MUST sign keccak256(addr, secondsFocused, nonce) (EIP-191)
-    ///         where nonce == sessionCount+1. This makes each log:
-    ///           • attestable (only the focusing wallet can sign it)
-    ///           • replay-proof (nonce is monotonic — a used signature can't be
-    ///             resubmitted, so totalSeconds/XP/leaderboard can't be inflated)
-    ///         That is the anti-fake, anti-replay proof of presence.
-    function logFocus(uint256 secondsFocused, uint256 nonce, bytes calldata sig) external {
+    ///         Replay protection: nonce must equal sessionCount+1 (monotonic, so a
+    ///         used log can't be resubmitted — totalSeconds/XP/leaderboard can't be
+    ///         inflated). Attestation comes from msg.sender (the wallet that signed
+    ///         the tx IS the focusing wallet), so no extra off-chain signature is
+    ///         needed — this keeps mobile wallets to a single confirmation popup.
+    function logFocus(uint256 secondsFocused, uint256 nonce) external {
         require(secondsFocused > 0 && secondsFocused <= 86400, "Fokusle: bad duration");
 
         FocusData storage f = focus[msg.sender];
         // Replay protection: each session must use the next unused nonce.
         require(nonce == f.sessionCount + 1, "Fokusle: bad nonce");
-
-        // Verify the caller signed (addr, secondsFocused, nonce) — proves the
-        // session was attested by the wallet that actually focused, not faked.
-        bytes32 h = keccak256(abi.encodePacked(msg.sender, secondsFocused, nonce));
-        require(_recover(h, sig) == msg.sender, "Fokusle: bad signature");
 
         uint256 today = block.timestamp / 1 days;
         uint256 week = block.timestamp / 1 weeks;
