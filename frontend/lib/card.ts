@@ -148,11 +148,6 @@ export async function renderFokusCard(d: FokusCardData): Promise<string> {
 
   ctx.fillStyle = BG;
   ctx.fillRect(0, 0, W, H);
-  ctx.strokeStyle = "rgba(255,255,255,0.04)";
-  ctx.lineWidth = 1;
-  for (let x = 0; x <= W; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
-  for (let y = 0; y <= H; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
-
   ctx.strokeStyle = LINE;
   ctx.lineWidth = 1;
   ctx.strokeRect(20, 20, W - 40, H - 40);

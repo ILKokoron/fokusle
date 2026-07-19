@@ -647,9 +647,6 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
   const GHOST = theme === "dark"
     ? { bg: "rgba(255,255,255,0.12)", border: "rgba(255,255,255,0.35)", text: "#fff" }
     : { bg: "rgba(110,84,255,0.08)", border: "rgba(110,84,255,0.35)", text: "#3a2f66" };
-  const GRID = theme === "dark"
-    ? "linear-gradient(rgba(110,84,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(110,84,255,0.06) 1px, transparent 1px)"
-    : "linear-gradient(rgba(110,84,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(110,84,255,0.05) 1px, transparent 1px)";
   const sessionPct = started ? Math.min(100, Math.round((elapsed / 3600) * 100)) : 0;
 
   const S = {
@@ -667,7 +664,7 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
   };
 
   return (
-    <div style={{ background: theme === "dark" ? "#0a0712" : "#eee9ff", minHeight: "100vh", padding: "20px 0", backgroundImage: GRID, backgroundSize: "26px 26px" }}>
+    <div style={{ background: theme === "dark" ? "#0a0712" : "#eee9ff", minHeight: "100vh", padding: "20px 0" }}>
       {screen === "splash" ? (
         // SPLASH (E+D): philosophical quote + visual orb + tap to begin
         <div onClick={() => setScreen("connect")} style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 28px", cursor: "pointer", textAlign: "center" }}>
