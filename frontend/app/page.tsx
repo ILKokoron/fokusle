@@ -622,13 +622,12 @@ export default function Home() {
       m > 0 ? `${m}m` :
       `${Math.max(1, Math.floor(secs))}s`;
     const streak = Number(prog.streak) as number;
-    return `started the session ${durLabel} ago. already can't quit the wallet's watching.
+    return `locked in ${durLabel}. the chain's watching, it doesn't blink.
 
-fokusle turns "i was focused" into "the chain says so". no token, no staking, no fake it till you make it. just you, the timer, and proof that doesn't lie.
+fokusle makes focus provable — no token, no staking, just proof.
 
 streak: ${streak} day${streak > 1 ? "s" : ""} and counting.
-
-Proof Of Focus: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
+Verify: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
   };
   const share = (platform: string) => {
     const text = shareText();
