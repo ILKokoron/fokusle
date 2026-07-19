@@ -41,6 +41,40 @@ const fmtClock = (total: number) => {
 };
 const shortAddr = (a?: string) => (a ? `${a.slice(0, 4)}…${a.slice(-2)}` : "");
 
+// Schizohustler bio templates — static (no AI cost), picked by time-of-day bucket
+// + a hash of the address so each wallet feels different. Returns a short line.
+const BIO_TEMPLATES: Record<string, string[]> = {
+  dawn: [
+    "woke up and locked in before the world did. attention is the only currency i respect.",
+    "built the discipline while you scrolled. mornings are mine, focus is my religion.",
+    "locked in at dawn, untouched by the noise. most people will never get this quiet.",
+  ],
+  day: [
+    "attention-market casualty? not me. i locked in while the feed begged for my eyes.",
+    "spent the day proving focus is a flex. the streak is real, the noise is fake.",
+    "i don't scroll, i compound. every locked-in hour is a brick in the wall.",
+  ],
+  dusk: [
+    "locked in past the sunset, discipline doesn't clock out. the night is for builders.",
+    "while you chased notifications, i stacked focus. this is the only flex that lasts.",
+    "dusk hits, most people quit. i lock in harder. attention is the new oil, i'm the refinery.",
+  ],
+  night: [
+    "3am, still locked in. the world sleeps, the discipline compounds. i am the anomaly.",
+    "night is when real focus lives. no notifications, just the streak and the silence.",
+    "locked in while they dream. i'm building something they'll scroll past tomorrow.",
+  ],
+};
+const bucketFromHour = (h: number) => (h < 6 ? "dawn" : h < 12 ? "day" : h < 18 ? "day" : h < 22 ? "dusk" : "night");
+const bioFor = (addr?: string, totalSec = 0) => {
+  const b = bucketFromHour(new Date().getHours());
+  const list = BIO_TEMPLATES[b] || BIO_TEMPLATES.day;
+  let h = 0;
+  if (addr) for (let i = 2; i < addr.length; i++) h = (h * 31 + addr.charCodeAt(i)) >>> 0;
+  const idx = (h + Math.floor(totalSec / 3600)) % list.length;
+  return list[idx];
+};
+
 const themes = {
   dark: {
     bg: "#0E091C", card: "#17102B", card2: "#1c1436", border: "#2A2145",
@@ -157,6 +191,7 @@ export default function Home() {
     mostActiveDay: string;
     avgGapHours: number | null;
     last7Days: number[]; // seconds focused per day, oldest to newest, index 0 = 6 days ago
+    last28Days: number[]; // 28-day grid, index 27 = today, 7 cols x 4 rows
   } | null>(null);
 
   const publicClient = usePublicClient();
@@ -165,18 +200,19 @@ export default function Home() {
     if (!address || !publicClient) return;
     setInsights((prev) => ({ ...(prev as any), loading: true }));
     try {
-      const logs = await publicClient.getLogs({
+      const logs = await publicClient.getContractEvents({
         address: FOCUSPROOF_ADDRESS,
-        event: FOCUSPROOF_ABI.find((e: any) => e.type === "event" && e.name === "SessionLogged") as any,
+        abi: FOCUSPROOF_ABI,
+        eventName: "SessionLogged",
         args: { user: address },
-        fromBlock: 0n,
+        fromBlock: "earliest",
         toBlock: "latest",
-      });
+      } as any) as any[];
 
       if (logs.length === 0) {
         setInsights({
           loading: false, totalSessions: 0, avgSessionMin: 0, longestSessionMin: 0,
-          mostActivePeriod: "-", mostActiveDay: "-", avgGapHours: null, last7Days: [0, 0, 0, 0, 0, 0, 0],
+          mostActivePeriod: "-", mostActiveDay: "-", avgGapHours: null, last7Days: [0, 0, 0, 0, 0, 0, 0], last28Days: new Array(28).fill(0),
         });
         return;
       }
@@ -200,6 +236,7 @@ export default function Home() {
       const now = Math.floor(Date.now() / 1000);
       const todayStart = now - (now % 86400);
       const last7Days = [0, 0, 0, 0, 0, 0, 0]; // index 6 = today, 0 = 6 days ago
+      const last28Days = new Array(28).fill(0); // index 27 = today
 
       for (const s of sessions) {
         const d = new Date(s.ts * 1000);
@@ -212,6 +249,7 @@ export default function Home() {
 
         const daysAgo = Math.floor((todayStart - (s.ts - (s.ts % 86400))) / 86400);
         if (daysAgo >= 0 && daysAgo <= 6) last7Days[6 - daysAgo] += s.seconds;
+        if (daysAgo >= 0 && daysAgo <= 27) last28Days[27 - daysAgo] += s.seconds;
       }
 
       const periodLabels = ["Night (00–06)", "Morning (06–12)", "Afternoon (12–18)", "Evening (18–24)"];
@@ -234,16 +272,17 @@ export default function Home() {
         mostActiveDay,
         avgGapHours,
         last7Days,
+        last28Days,
       });
     } catch (e) {
       setInsights({
         loading: false, totalSessions: 0, avgSessionMin: 0, longestSessionMin: 0,
-        mostActivePeriod: "-", mostActiveDay: "-", avgGapHours: null, last7Days: [0, 0, 0, 0, 0, 0, 0],
+        mostActivePeriod: "-", mostActiveDay: "-", avgGapHours: null, last7Days: [0, 0, 0, 0, 0, 0, 0], last28Days: new Array(28).fill(0),
       });
     }
   }, [address, publicClient]);
 
-  useEffect(() => { loadInsights(); }, [loadInsights]);
+  useEffect(() => { loadInsights(); }, [loadInsights, prog]);
 
   const [nnsProfile, setNnsProfile] = useState<{ primaryName: string | null; avatar: string | null } | null>(null);
 
@@ -375,6 +414,26 @@ export default function Home() {
   });
 
   const [leaderboard, setLeaderboard] = useState<{ addr: string; streak: number; name: string }[]>([]);
+  const [viewAddr, setViewAddr] = useState<string | null>(null); // clicked leaderboard user → modal
+  const [viewData, setViewData] = useState<{ name: string; streak: number; xp: number; level: number; sessions: number; total: number } | null>(null);
+  const [viewLoading, setViewLoading] = useState(false);
+
+  useEffect(() => {
+    if (!viewAddr || !publicClient) return;
+    (async () => {
+      setViewLoading(true);
+      try {
+        const f = await publicClient.readContract({ address: FOCUSPROOF_ADDRESS, abi: FOCUSPROOF_ABI, functionName: "focus", args: [viewAddr] } as any) as any[];
+        const nick = await publicClient.readContract({ address: FOCUSPROOF_ADDRESS, abi: FOCUSPROOF_ABI, functionName: "nickname", args: [viewAddr] } as any) as string;
+        setViewData({
+          name: (nick && nick.length > 0 ? nick : `${viewAddr.slice(0, 4)}…${viewAddr.slice(-4)}`),
+          streak: Number(f[3] ?? 0), xp: Number(f[6] ?? 0), level: Number(f[7] ?? 0),
+          sessions: Number(f[8] ?? 0), total: Number(f[0] ?? 0),
+        });
+      } catch { setViewData(null); }
+      setViewLoading(false);
+    })();
+  }, [viewAddr, publicClient]);
 
   useEffect(() => {
     if (!leaderboardAddrs || !publicClient || (leaderboardAddrs as string[]).length === 0) return;
@@ -390,19 +449,21 @@ export default function Home() {
 
         let names: (string | null)[] = addrs.map(() => null);
         try {
-          const nnsAddress = "0x3019BF1dfB84E5b46Ca9D0eEC37dE08a59A41308" as `0x${string}`;
-          const nnsAbi = [{
-            type: "function", name: "getProfilesForAddresses", stateMutability: "view",
-            inputs: [{ name: "addrs", type: "address[]" }],
-            outputs: [{ type: "tuple[]", components: [
-              { name: "addr", type: "address" }, { name: "primaryName", type: "string" }, { name: "avatar", type: "string" },
-            ]}],
-          }] as const;
-          const profiles = await publicClient.readContract({
-            address: nnsAddress, abi: nnsAbi, functionName: "getProfilesForAddresses", args: [addrs],
-          } as any) as any[];
-          names = profiles.map((p) => p?.primaryName || null);
+          // priority 1: our own onchain nickname
+          const nicks = await publicClient.readContract({
+            address: FOCUSPROOF_ADDRESS, abi: FOCUSPROOF_ABI, functionName: "getNicknames", args: [addrs],
+          } as any) as string[];
+          names = nicks.map((n) => (n && n.length > 0 ? n : null));
         } catch {}
+        // priority 2: NNS (if nickname empty)
+        if (names.some((n) => !n)) {
+          try {
+            const nnsAddress = "0x3019BF1dfB84E5b46Ca9D0eEC37dE08a59A41308" as `0x${string}`;
+            const nnsAbi = [{ type: "function", name: "getProfilesForAddresses", stateMutability: "view", inputs: [{ name: "addrs", type: "address[]" }], outputs: [{ type: "tuple[]", components: [{ name: "addr", type: "address" }, { name: "primaryName", type: "string" }, { name: "avatar", type: "string" }] }] }] as const;
+            const profiles = await publicClient.readContract({ address: nnsAddress, abi: nnsAbi, functionName: "getProfilesForAddresses", args: [addrs] } as any) as any[];
+            names = names.map((n, i) => n || profiles[i]?.primaryName || null);
+          } catch {}
+        }
 
         const rows = addrs.map((a, i) => ({
           addr: a,
@@ -625,7 +686,7 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
         <div style={S.screen}>
           {!isConnected ? (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: 640, textAlign: "center", padding: "0 16px" }}>
-              <div style={{ width: 76, height: 76, borderRadius: 22, background: "linear-gradient(150deg,#8b7bff,#6E54FF)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 32, color: "#fff", fontFamily: "var(--font-grotesk), sans-serif", boxShadow: "0 12px 30px rgba(110,84,255,0.4)", marginBottom: 18 }}>F</div>
+              <img src="/logo.png" width={76} height={76} style={{ width: 76, height: 76, borderRadius: 22, objectFit: "cover", boxShadow: "0 12px 30px rgba(110,84,255,0.4)", marginBottom: 18 }} alt="FokusLe" />
               <h2 style={{ fontSize: 24, margin: "0 0 6px", fontFamily: "var(--font-grotesk), sans-serif", color: T.text }}>FokusLe</h2>
               <p style={{ color: T.muted, fontSize: 14, margin: "0 0 30px", lineHeight: 1.5, maxWidth: 260 }}>Are you ready to lock in?</p>
               <div style={{ width: "100%", display: "flex", justifyContent: "center" }}>
@@ -652,8 +713,8 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
                   <div style={S.hero}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <div style={{ width: 26, height: 26, borderRadius: 8, background: "linear-gradient(150deg,#8b7bff,#6E54FF)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14, color: "#fff", fontFamily: "var(--font-grotesk), sans-serif" }}>F</div>
-                        <div style={{ fontSize: 15, fontWeight: 700, color: T.text, fontFamily: "var(--font-grotesk), sans-serif" }}>FokusLe</div>
+                        <img src="/logo.png" width={22} height={22} style={{ width: 22, height: 22, borderRadius: 7, objectFit: "cover" }} alt="FokusLe" />
+                        <div style={{ fontSize: 14, fontWeight: 700, color: T.text, fontFamily: "var(--font-grotesk), sans-serif" }}>FokusLe</div>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, background: GHOST.bg, borderRadius: 999, padding: "5px 10px 5px 6px" }}>
                         <div style={{ width: 7, height: 7, borderRadius: 999, background: "#4ADE80" }} />
@@ -706,7 +767,7 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
                         </button>
                       </div>
                     )}
-                    <div style={{ textAlign: "center", fontSize: 10, color: T.muted, marginTop: 10, fontFamily: "var(--font-mono), monospace" }}>Finish = onchain fee (signed, replay-proof)<br />Leaving the tab = automatic fail · that's the discipline</div>
+                    <div style={{ textAlign: "center", fontSize: 11, color: T.muted, marginTop: 10, fontFamily: "var(--font-grotesk), sans-serif", lineHeight: 1.5 }}>lock in. stay. that's the discipline.</div>
                   </div>
 
                   <div style={S.sectionTitle}><h3 style={S.sectionH3}>Top streaks</h3><span style={{ fontSize: 11, color: T.accent, fontWeight: 600, cursor: "pointer" }} onClick={() => setTab("progress")}>See all</span></div>
@@ -739,21 +800,20 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
                     <div style={{ flex: 1, textAlign: "center", borderLeft: `1px solid ${T.border}` }}><div style={{ fontSize: 18, fontWeight: 700, fontFamily: "var(--font-mono), monospace" }}>{insights && insights.avgSessionMin ? `${fmtHourPct(insights.avgSessionMin * 60)}%` : "-"}</div><div style={{ fontSize: 10, color: T.muted }}>Avg / session</div></div>
                   </div>
 
-                  <div style={S.sectionTitle}><h3 style={S.sectionH3}>Last 7 days</h3></div>
+                  <div style={S.sectionTitle}><h3 style={S.sectionH3}>Last 28 days</h3></div>
                   <div style={S.card}>
-                    {insights?.last7Days ? insights.last7Days.map((sec, i) => {
-                      const dayNames = ["-6d", "-5d", "-4d", "-3d", "-2d", "Yest.", "Today"];
-                      const pct = fmtHourPct(sec);
-                      return (
-                        <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: i === 6 ? 0 : 9 }}>
-                          <div style={{ width: 40, fontSize: 11, color: T.muted }}>{dayNames[i]}</div>
-                          <div style={{ flex: 1, height: 8, background: T.card2, borderRadius: 999, overflow: "hidden" }}>
-                            <div style={{ height: "100%", width: `${Math.min(100, pct)}%`, background: T.accent, borderRadius: 999 }} />
-                          </div>
-                          <div style={{ width: 40, fontSize: 11, textAlign: "right", color: T.muted, fontFamily: "var(--font-mono), monospace" }}>{pct}%</div>
-                        </div>
-                      );
-                    }) : <div style={{ color: T.muted, fontSize: 12 }}>Loading…</div>}
+                    {insights?.last28Days ? (
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 5 }}>
+                        {insights.last28Days.map((sec, i) => {
+                          // intensity: 1h = full level; 5 buckets
+                          const lvl = sec === 0 ? 0 : Math.min(4, 1 + Math.floor(Number(sec) / 900));
+                          const colors = ["#1c1436", "rgba(110,84,255,0.28)", "rgba(110,84,255,0.5)", "rgba(110,84,255,0.75)", "#8b7bff"];
+                          return (
+                            <div key={i} title={`${Math.floor(Number(sec) / 3600 * 10) / 10}h focused`} style={{ aspectRatio: "1 / 1", borderRadius: 4, background: colors[lvl], border: "1px solid rgba(110,84,255,0.15)" }} />
+                          );
+                        })}
+                      </div>
+                    ) : <div style={{ color: T.muted, fontSize: 12 }}>Loading…</div>}
                   </div>
 
                   <div style={S.sectionTitle}><h3 style={S.sectionH3}>Leaderboard</h3></div>
@@ -764,7 +824,7 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
                       const isMe = row.addr.toLowerCase() === address?.toLowerCase();
                       const av = isMe && customAvatar ? customAvatar : `https://api.dicebear.com/7.x/shapes/svg?seed=${row.addr}`;
                       return (
-                      <div key={row.addr} style={S.feedItem}>
+                      <div key={row.addr} style={{ ...S.feedItem, cursor: "pointer" }} onClick={() => setViewAddr(row.addr)}>
                         <img src={av} style={{ width: 34, height: 34, borderRadius: 999, flexShrink: 0, border: "1px solid rgba(110,84,255,0.4)", objectFit: "cover" }} />
                         <div><b style={{ fontSize: 13 }}>{i + 1}. {row.name}{isMe ? " (You)" : ""}</b></div>
                         <div style={S.streakTag}>{row.streak}d</div>
@@ -803,7 +863,7 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
                       <span style={{ marginLeft: "auto", fontSize: 11, color: T.muted, fontFamily: "var(--font-mono), monospace" }}>{prog ? String(prog.xp) : 0} XP</span>
                     </div>
                     <p style={{ color: T.muted, fontSize: 12, lineHeight: 1.6, margin: "0 0 14px" }}>
-                      Spend 50 XP for a cosmetic pull. Purely cosmetic — no gameplay advantage, not a tradeable token.
+                      Your Monanimal is a companion that grows as you focus. Pull one with XP — pure vibes, no stats, just yours.
                     </p>
                     <button
                       onClick={pullGacha}
@@ -847,7 +907,7 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
                   <div style={{ ...S.card, textAlign: "center", background: "linear-gradient(160deg, rgba(110,84,255,0.12) 0%, rgba(42,31,102,0.06) 60%, transparent 100%)", border: "1px solid rgba(110,84,255,0.30)", padding: 20 }}>
                     <img src={customAvatar || nnsProfile?.avatar || `https://api.dicebear.com/7.x/shapes/svg?seed=${address}`} style={{ width: 68, height: 68, borderRadius: 999, margin: "0 auto 12px", display: "block", border: "2px solid rgba(110,84,255,0.5)", boxShadow: "0 6px 18px rgba(110,84,255,0.25)" }} />
                     <div style={{ fontWeight: 700, fontSize: isHandle ? 14 : 17, color: T.text, fontFamily: "var(--font-grotesk), sans-serif" }}>{displayName}</div>
-                    <div style={{ color: T.muted, fontSize: 12, marginTop: 4, wordBreak: "break-all", padding: "0 8px" }}>{address}</div>
+                    <div style={{ color: T.muted, fontSize: 11.5, marginTop: 6, lineHeight: 1.5, padding: "0 6px", fontStyle: "italic" }}>{bioFor(address, prog ? Number(prog.totalSeconds) : 0)}</div>
                   </div>
 
                   {prog && (
@@ -895,24 +955,13 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
               {/* SETTINGS TAB */}
               {tab === "settings" && (
                 <>
-                  <div style={S.sectionTitle}><h3 style={S.sectionH3}>Settings</h3><span style={{ fontSize: 11, color: T.accent, fontWeight: 600, cursor: "pointer" }} onClick={() => setTab("profile")}>Back</span></div>
-                  <div style={S.card}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "13px 0", borderBottom: `1px solid ${T.border}`, fontSize: 13 }}>
-                      <span>Theme</span>
-                      <div style={{ display: "flex", gap: 6 }}>
-                        <button onClick={() => setTheme("dark")} style={{ fontSize: 11, padding: "5px 10px", borderRadius: 8, border: `1px solid ${T.border}`, background: theme === "dark" ? T.accent : "transparent", color: theme === "dark" ? "#fff" : T.muted, cursor: "pointer" }}>Dark</button>
-                        <button onClick={() => setTheme("light")} style={{ fontSize: 11, padding: "5px 10px", borderRadius: 8, border: `1px solid ${T.border}`, background: theme === "light" ? T.accent : "transparent", color: theme === "light" ? "#fff" : T.muted, cursor: "pointer" }}>Light</button>
-                      </div>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", padding: "13px 0", fontSize: 13 }}><span>Network</span><span style={{ color: T.muted }}>Monad Testnet</span></div>
-                  </div>
+                  {/* ACCOUNT — top */}
                   <div style={S.sectionTitle}><h3 style={S.sectionH3}>Account</h3></div>
                   <div style={S.card}>
                     <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "13px 0", borderBottom: `1px solid ${T.border}` }}>
                       <img src={customAvatar || nnsProfile?.avatar || `https://api.dicebear.com/7.x/shapes/svg?seed=${address}`} style={{ width: 52, height: 52, borderRadius: 999, border: "2px solid rgba(110,84,255,0.5)", objectFit: "cover" }} />
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600 }}>Profile picture</div>
-                        <div style={{ fontSize: 11, color: T.muted }}>Stored onchain — follows your wallet to any device</div>
+                        <div style={{ fontSize: 11, color: T.muted }}>Saved onchain — follows your wallet.</div>
                       </div>
                       <label style={{ background: GHOST.bg, border: `1px solid ${GHOST.border}`, color: GHOST.text, padding: "8px 12px", borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
                         {customAvatar ? "Change" : "Upload"}
@@ -927,7 +976,6 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
                               const canvas = document.createElement("canvas");
                               canvas.width = size; canvas.height = size;
                               const ctx = canvas.getContext("2d")!;
-                              // cover-crop to square
                               const min = Math.min(img.width, img.height);
                               const sx = (img.width - min) / 2, sy = (img.height - min) / 2;
                               ctx.drawImage(img, sx, sy, min, min, 0, 0, size, size);
@@ -956,6 +1004,21 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", padding: "13px 0", fontSize: 13 }}><span style={{ color: "#ff9b9b" }}>Sign out</span><span style={{ color: "#ff9b9b", cursor: "pointer" }} onClick={() => setAuthed(false)}>→</span></div>
                   </div>
+
+                  {/* SETTINGS / GENERAL — middle */}
+                  <div style={S.sectionTitle}><h3 style={S.sectionH3}>Settings</h3></div>
+                  <div style={S.card}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "13px 0", borderBottom: `1px solid ${T.border}`, fontSize: 13 }}>
+                      <span>Theme</span>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <button onClick={() => setTheme("dark")} style={{ fontSize: 11, padding: "5px 10px", borderRadius: 8, border: `1px solid ${T.border}`, background: theme === "dark" ? T.accent : "transparent", color: theme === "dark" ? "#fff" : T.muted, cursor: "pointer" }}>Dark</button>
+                        <button onClick={() => setTheme("light")} style={{ fontSize: 11, padding: "5px 10px", borderRadius: 8, border: `1px solid ${T.border}`, background: theme === "light" ? T.accent : "transparent", color: theme === "light" ? "#fff" : T.muted, cursor: "pointer" }}>Light</button>
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", padding: "13px 0", fontSize: 13 }}><span>Network</span><span style={{ color: T.muted }}>Monad Testnet</span></div>
+                  </div>
+
+                  {/* ABOUT — bottom */}
                   <div style={S.sectionTitle}><h3 style={S.sectionH3}>About</h3></div>
                   <div style={S.card}>
                     <div style={{ display: "flex", justifyContent: "space-between", padding: "13px 0", borderBottom: `1px solid ${T.border}`, fontSize: 13 }}><span>Contract</span><a href={`https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`} target="_blank" style={{ color: T.accent, textDecoration: "none" }}>View on Explorer</a></div>
@@ -976,6 +1039,24 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
           </div>
         )}
 
+        {viewAddr && (
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 110 }} onClick={() => setViewAddr(null)}>
+            <div style={{ width: 280, background: T.card, border: `1px solid ${T.border}`, borderRadius: 18, padding: 20, textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
+              <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 2, fontFamily: "var(--font-grotesk), sans-serif" }}>{viewData?.name || "…"}</div>
+              <div style={{ fontSize: 11, color: T.muted, marginBottom: 14, wordBreak: "break-all", padding: "0 10px" }}>{viewAddr}</div>
+              {viewLoading ? <div style={{ color: T.muted, fontSize: 12 }}>Loading…</div> : viewData ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}><span style={{ color: T.muted }}>Streak</span><b>{viewData.streak}d</b></div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}><span style={{ color: T.muted }}>Total locked in</span><b style={{ fontFamily: "var(--font-mono), monospace" }}>{fmt(BigInt(viewData.total))}</b></div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}><span style={{ color: T.muted }}>Sessions</span><b>{viewData.sessions}</b></div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}><span style={{ color: T.muted }}>XP / Level</span><b style={{ fontFamily: "var(--font-mono), monospace" }}>{viewData.xp} / {viewData.level}</b></div>
+                </div>
+              ) : <div style={{ color: T.muted, fontSize: 12 }}>No data.</div>}
+              <button onClick={() => setViewAddr(null)} style={{ width: "100%", marginTop: 16, background: T.accent, color: "#fff", border: "none", padding: 11, borderRadius: 12, fontWeight: 600, fontSize: 13, cursor: "pointer" }}>Close</button>
+            </div>
+          </div>
+        )}
+
         {showShare && (
           <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
             <div style={{ width: 260, background: T.card, border: `1px solid ${T.border}`, borderRadius: 18, padding: 18, textAlign: "center" }}>
@@ -993,13 +1074,13 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
 
         {lockPopup && (
           <div style={{ position: "fixed", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 90, pointerEvents: "none" }}>
-            <div style={{ background: "rgba(20,12,40,0.92)", border: `1px solid rgba(110,84,255,0.5)`, borderRadius: 16, padding: "16px 34px", textAlign: "center", minWidth: 300, display: "flex", alignItems: "center", gap: 16, boxShadow: "0 12px 40px rgba(110,84,255,0.25)", backdropFilter: "blur(8px)", animation: "fkpop 0.25s ease-out" }}>
-              <div style={{ width: 42, height: 42, borderRadius: 12, background: "linear-gradient(150deg,#8b7bff,#6E54FF)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 6px 18px rgba(110,84,255,0.4)" }}>
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fff" strokeWidth="2.2"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+            <div style={{ background: "rgba(20,12,40,0.92)", border: `1px solid rgba(110,84,255,0.5)`, borderRadius: 12, padding: "10px 18px", textAlign: "center", minWidth: 200, maxWidth: 260, display: "flex", alignItems: "center", gap: 10, boxShadow: "0 12px 40px rgba(110,84,255,0.25)", backdropFilter: "blur(8px)", animation: "fkpop 0.25s ease-out" }}>
+              <div style={{ width: 30, height: 30, borderRadius: 9, background: "linear-gradient(150deg,#8b7bff,#6E54FF)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 6px 18px rgba(110,84,255,0.4)" }}>
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#fff" strokeWidth="2.2"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
               </div>
               <div style={{ textAlign: "left" }}>
-                <div style={{ fontSize: 16, fontWeight: 700, color: "#fff", fontFamily: "var(--font-grotesk), sans-serif", letterSpacing: 0.3 }}>Locked in</div>
-                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.7)", marginTop: 1 }}>Focus now.</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "#fff", fontFamily: "var(--font-grotesk), sans-serif", letterSpacing: 0.3 }}>Locked in</div>
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", marginTop: 1 }}>Focus now.</div>
               </div>
             </div>
           </div>
