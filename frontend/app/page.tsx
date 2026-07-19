@@ -8,6 +8,20 @@ import { monadTestnet } from "../lib/wagmi";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { renderFokusCard, dataUrlToBlob, type CardBadge } from "../lib/card";
 
+// RPC getLogs is capped at a 100-block range, so we track per-session activity
+// locally to power the 28-day grid honestly (forward-looking from this wallet).
+const lsKey = (a?: string) => `fokusle_sessions_${a?.toLowerCase()}`;
+function loadLocalSessions(addr?: string): { ts: number; seconds: number }[] {
+  try { const raw = localStorage.getItem(lsKey(addr)); return raw ? JSON.parse(raw) : []; } catch { return []; }
+}
+function addLocalSession(addr?: string, seconds = 0) {
+  try {
+    const arr = loadLocalSessions(addr);
+    arr.push({ ts: Math.floor(Date.now() / 1000), seconds: Number(seconds) });
+    localStorage.setItem(lsKey(addr), JSON.stringify(arr.slice(-300)));
+  } catch {}
+}
+
 
 type Progress = {
   totalSeconds: bigint;
@@ -199,19 +213,14 @@ export default function Home() {
   const publicClient = usePublicClient();
 
   const loadInsights = useCallback(async () => {
-    if (!address || !publicClient) return;
+    if (!address) return;
     setInsights((prev) => ({ ...(prev as any), loading: true }));
     try {
-      const logs = await publicClient.getContractEvents({
-        address: FOCUSPROOF_ADDRESS,
-        abi: FOCUSPROOF_ABI,
-        eventName: "SessionLogged",
-        args: { user: address },
-        fromBlock: "earliest",
-        toBlock: "latest",
-      } as any) as any[];
+      const sessions = loadLocalSessions(address)
+        .map((s) => ({ seconds: Number(s.seconds), ts: Number(s.ts) }))
+        .sort((a, b) => a.ts - b.ts);
 
-      if (logs.length === 0) {
+      if (sessions.length === 0) {
         setInsights({
           loading: false, totalSessions: 0, avgSessionMin: 0, longestSessionMin: 0,
           mostActivePeriod: "-", mostActiveDay: "-", avgGapHours: null, last7Days: [0, 0, 0, 0, 0, 0, 0], last28Days: new Array(28).fill(0),
@@ -219,15 +228,7 @@ export default function Home() {
         return;
       }
 
-      // fetch block timestamps for each log (dedup by block)
-      const blockNums = Array.from(new Set(logs.map((l) => l.blockNumber!)));
-      const blocks = await Promise.all(blockNums.map((bn) => publicClient.getBlock({ blockNumber: bn })));
-      const tsByBlock = new Map(blocks.map((b) => [b.number, Number(b.timestamp)]));
 
-      const sessions = logs.map((l) => ({
-        seconds: Number((l.args as any).secondsFocused),
-        ts: tsByBlock.get(l.blockNumber!)!,
-      })).sort((a, b) => a.ts - b.ts);
 
       const periodBuckets = [0, 0, 0, 0]; // night(0-6) morning(6-12) afternoon(12-18) evening(18-24)
       const dayBuckets = [0, 0, 0, 0, 0, 0, 0]; // Sun..Sat
@@ -282,7 +283,7 @@ export default function Home() {
         mostActivePeriod: "-", mostActiveDay: "-", avgGapHours: null, last7Days: [0, 0, 0, 0, 0, 0, 0], last28Days: new Array(28).fill(0),
       });
     }
-  }, [address, publicClient]);
+  }, [address]);
 
   useEffect(() => { loadInsights(); }, [loadInsights, prog]);
 
@@ -580,6 +581,7 @@ export default function Home() {
       setStarted(false);
       setElapsed(0);
       setShowShare(true); // show share modal AFTER successful log
+      addLocalSession(address, Number(focused));
       setToast({ text: "Success", type: "ok" });
     } catch (e: any) {
       setToast({ text: "❌ Failed", type: "error" });
