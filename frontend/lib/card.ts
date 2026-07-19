@@ -189,8 +189,8 @@ export async function renderFokusCard(d: FokusCardData): Promise<string> {
   const prev = Math.min(100, Math.round((Number(d.prevDailySeconds ?? 0n) * 100) / DAILY_TARGET));
   const delta = score - prev;
   const sign = delta > 0 ? "+" : delta < 0 ? "-" : "";
-  ctx.font = `900 150px ${FONT}`;
-  ctx.fillText(`${sign}${score}%`, M + 36, scoreY + scoreH - 30);
+  ctx.font = `900 110px ${FONT}`;
+  ctx.fillText(`${sign}${score}%`, M + 36, scoreY + scoreH - 22);
 
   const statY = scoreY + scoreH + 24;
   const statH = 96;
