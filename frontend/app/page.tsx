@@ -866,37 +866,19 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
                   <div style={S.sectionTitle}><h3 style={S.sectionH3}>Your Progress</h3></div>
                   <div style={S.card}>
                     {insights?.last28Days ? (
-                      (() => {
-                      const nowTs = Math.floor(Date.now() / 1000);
-                      const todayStart = nowTs - (nowTs % 86400);
-                      return (
                       <Fragment>
-                        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 5, marginBottom: 7 }}>
-                          {Array.from({ length: 7 }).map((_, col) => {
-                            const dt = new Date((todayStart - col * 86400) * 1000);
-                            const name = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][dt.getUTCDay()];
-                            return (
-                              <div key={col} style={{ textAlign: "center", fontSize: 12, fontWeight: 600, color: theme === "dark" ? "rgba(255,255,255,0.6)" : "rgba(58,47,102,0.75)" }}>{name}</div>
-                            );
-                          })}
-                        </div>
                         <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 5 }}>
                           {insights.last28Days.map((sec, i) => {
                             const lvl = sec === 0 ? 0 : Math.min(4, 1 + Math.floor(Number(sec) / 900));
                             const darkColors = ["#1c1436", "rgba(110,84,255,0.28)", "rgba(110,84,255,0.5)", "rgba(110,84,255,0.75)", "#8b7bff"];
                             const lightColors = ["#e6e1ff", "rgba(110,84,255,0.3)", "rgba(110,84,255,0.5)", "rgba(110,84,255,0.72)", "#6E54FF"];
                             const colors = theme === "dark" ? darkColors : lightColors;
-                            const dayNum = i + 1; // top-left = 1, bottom-right = 28 (sequential)
                             return (
-                              <div key={i} title={`Day ${dayNum} — ${Math.floor(Number(sec) / 3600 * 10) / 10}h focused`} style={{ aspectRatio: "1 / 1", borderRadius: 4, background: colors[lvl], border: `1px solid ${theme === "dark" ? "rgba(110,84,255,0.15)" : "rgba(110,84,255,0.3)"}`, position: "relative", display: "flex", alignItems: "flex-start", justifyContent: "flex-start", padding: 3 }}>
-                                <span style={{ fontSize: 9, lineHeight: 1, color: lvl === 0 ? (theme === "dark" ? "rgba(255,255,255,0.35)" : "rgba(58,47,102,0.45)") : (theme === "dark" ? "rgba(255,255,255,0.85)" : "#fff"), fontWeight: 600 }}>{dayNum}</span>
-                              </div>
+                              <div key={i} title={`${Math.floor(Number(sec) / 3600 * 10) / 10}h focused`} style={{ aspectRatio: "1 / 1", borderRadius: 4, background: colors[lvl], border: `1px solid ${theme === "dark" ? "rgba(110,84,255,0.15)" : "rgba(110,84,255,0.3)"}` }} />
                             );
                           })}
                         </div>
                       </Fragment>
-                      );
-                      })()
                     ) : <div style={{ color: T.muted, fontSize: 12 }}>Loading…</div>}
                   </div>
 
