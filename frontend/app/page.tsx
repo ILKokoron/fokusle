@@ -490,6 +490,7 @@ export default function Home() {
       (async () => {
         try {
           await (signMessageAsync as any)({ account: address as `0x${string}`, message: `FokusLe login\nWallet: ${address}\nSign to prove ownership.` });
+          setToast(null);
           setAuthed(true);
         } catch {
           setAuthError(true);
