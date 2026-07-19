@@ -14,6 +14,8 @@ export type FokusCardData = {
   level: bigint;
   badges: CardBadge[];
   avatarUrl?: string;
+  dailySeconds?: bigint;     // focus time today (for daily Focus Score)
+  prevDailySeconds?: bigint; // focus time yesterday (for +/- delta)
 };
 
 const W = 1200;
@@ -181,9 +183,14 @@ export async function renderFokusCard(d: FokusCardData): Promise<string> {
   ctx.fillStyle = SCORE_TXT;
   ctx.font = `700 24px ${FONT}`;
   ctx.fillText("FOCUS SCORE", M + 36, scoreY + 50);
-  const score = Math.min(100, Math.round((Number(d.weeklySeconds) * 100) / (7 * 3600 * 8)));
+  // daily focus score vs 8h/day target; +/- delta vs yesterday
+  const DAILY_TARGET = 8 * 3600;
+  const score = Math.min(100, Math.round((Number(d.dailySeconds ?? 0n) * 100) / DAILY_TARGET));
+  const prev = Math.min(100, Math.round((Number(d.prevDailySeconds ?? 0n) * 100) / DAILY_TARGET));
+  const delta = score - prev;
+  const sign = delta > 0 ? "+" : delta < 0 ? "-" : "";
   ctx.font = `900 150px ${FONT}`;
-  ctx.fillText(`${score}%`, M + 36, scoreY + scoreH - 30);
+  ctx.fillText(`${sign}${score}%`, M + 36, scoreY + scoreH - 30);
 
   const statY = scoreY + scoreH + 24;
   const statH = 96;

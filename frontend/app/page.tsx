@@ -21,6 +21,14 @@ function addLocalSession(addr?: string, seconds = 0) {
     localStorage.setItem(lsKey(addr), JSON.stringify(arr.slice(-300)));
   } catch {}
 }
+// total focus seconds for a UTC calendar day offset (0 = today, 1 = yesterday)
+function localSecondsForDay(addr?: string, dayOffset = 0): number {
+  const now = Math.floor(Date.now() / 1000);
+  const start = now - (now % 86400) - dayOffset * 86400;
+  return loadLocalSessions(addr)
+    .filter((s) => s.ts >= start && s.ts < start + 86400)
+    .reduce((a, s) => a + Number(s.seconds), 0);
+}
 
 
 type Progress = {
@@ -609,7 +617,13 @@ Current Streak
 ${prog.streak} Days
 
 Focus Score
-${fmtPct(prog.weeklySeconds, 7n * 3600n * 8n)}%
+${(() => {
+  const DAILY = 8n * 3600n;
+  const sc = fmtPct(BigInt(localSecondsForDay(address, 0)), DAILY);
+  const pv = fmtPct(BigInt(localSecondsForDay(address, 1)), DAILY);
+  const d = sc - pv;
+  return `${d > 0 ? "+" : d < 0 ? "-" : ""}${sc}%`;
+})()}
 
 Wallet
 ${address?.slice(0, 6)}…${address?.slice(-4)}
@@ -645,6 +659,8 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
       level: prog.level,
       badges: bgs,
       avatarUrl: customAvatar || undefined,
+      dailySeconds: BigInt(localSecondsForDay(address, 0)),
+      prevDailySeconds: BigInt(localSecondsForDay(address, 1)),
     });
     const blob = dataUrlToBlob(dataUrl);
     const url = URL.createObjectURL(blob);
