@@ -423,12 +423,12 @@ export default function Home() {
     (async () => {
       setViewLoading(true);
       try {
-        const f = await publicClient.readContract({ address: FOCUSPROOF_ADDRESS, abi: FOCUSPROOF_ABI, functionName: "focus", args: [viewAddr] } as any) as any[];
+        const f = await publicClient.readContract({ address: FOCUSPROOF_ADDRESS, abi: FOCUSPROOF_ABI, functionName: "getProgress", args: [viewAddr] } as any) as any[];
         const nick = await publicClient.readContract({ address: FOCUSPROOF_ADDRESS, abi: FOCUSPROOF_ABI, functionName: "nickname", args: [viewAddr] } as any) as string;
         setViewData({
           name: (nick && nick.length > 0 ? nick : `${viewAddr.slice(0, 4)}…${viewAddr.slice(-4)}`),
-          streak: Number(f[3] ?? 0), xp: Number(f[6] ?? 0), level: Number(f[7] ?? 0),
-          sessions: Number(f[8] ?? 0), total: Number(f[0] ?? 0),
+          streak: Number(f[2] ?? 0), xp: Number(f[3] ?? 0), level: Number(f[4] ?? 0),
+          sessions: Number(f[5] ?? 0), total: Number(f[0] ?? 0),
         });
       } catch { setViewData(null); }
       setViewLoading(false);
@@ -449,11 +449,13 @@ export default function Home() {
 
         let names: (string | null)[] = addrs.map(() => null);
         try {
-          // priority 1: our own onchain nickname
-          const nicks = await publicClient.readContract({
-            address: FOCUSPROOF_ADDRESS, abi: FOCUSPROOF_ABI, functionName: "getNicknames", args: [addrs],
-          } as any) as string[];
-          names = nicks.map((n) => (n && n.length > 0 ? n : null));
+          // priority 1: our own onchain nickname (single call per addr)
+          names = await Promise.all(addrs.map(async (a) => {
+            try {
+              const n = await publicClient.readContract({ address: FOCUSPROOF_ADDRESS, abi: FOCUSPROOF_ABI, functionName: "nickname", args: [a] } as any) as string;
+              return (n && n.length > 0) ? n : null;
+            } catch { return null; }
+          }));
         } catch {}
         // priority 2: NNS (if nickname empty)
         if (names.some((n) => !n)) {
@@ -863,7 +865,7 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
                       <span style={{ marginLeft: "auto", fontSize: 11, color: T.muted, fontFamily: "var(--font-mono), monospace" }}>{prog ? String(prog.xp) : 0} XP</span>
                     </div>
                     <p style={{ color: T.muted, fontSize: 12, lineHeight: 1.6, margin: "0 0 14px" }}>
-                      Your Monanimal is a companion that grows as you focus. Pull one with XP — pure vibes, no stats, just yours.
+                      A companion that grows as you focus. Pull one with XP.
                     </p>
                     <button
                       onClick={pullGacha}
