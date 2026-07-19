@@ -747,7 +747,7 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
               {authError ? (
                 <>
                   <p style={{ color: T.muted, fontSize: 13, marginBottom: 16 }}>Sign in cancelled.</p>
-                  <button onClick={() => { setAuthError(false); setAuthed(false); }} style={{ background: T.accent, color: "#fff", border: "none", padding: "12px 22px", borderRadius: 12, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>Try again</button>
+                  <button onClick={async () => { setAuthError(false); setAuthed(false); await signIn(); }} style={{ background: T.accent, color: "#fff", border: "none", padding: "12px 22px", borderRadius: 12, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>Try again</button>
                 </>
               ) : (
                 <p style={{ color: T.muted, fontSize: 13 }}>Approve the sign request in your wallet to continue…</p>
