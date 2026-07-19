@@ -510,7 +510,6 @@ export default function Home() {
           setAuthed(true);
         } catch {
           setAuthError(true);
-          setToast({ text: "user cancelled sign in request", type: "error" });
         } finally {
           signBusyRef.current = false;
         }
