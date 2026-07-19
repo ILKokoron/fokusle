@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useAccount, useReadContract, useWriteContract, useSignMessage, usePublicClient, useDisconnect } from "wagmi";
 import { keccak256, encodePacked, encodeAbiParameters, parseAbiParameters } from "viem";
 import { FOCUSPROOF_ADDRESS, FOCUSPROOF_ABI, BADGE_META, MONANIMAL_NAMES } from "../lib/abi";
@@ -95,7 +95,7 @@ export default function Home() {
   const { signMessageAsync } = useSignMessage();
 
   const [authed, setAuthed] = useState(false);
-  const [signBusy, setSignBusy] = useState(false); // guard auto sign-in loop on cancel
+  const signBusyRef = useRef(false); // guard auto sign-in loop on cancel (ref, no re-render)
   const [prog, setProg] = useState<Progress | null>(null);
   const [badges, setBadges] = useState<number[]>([]);
   const [msg, setMsg] = useState("");
@@ -483,9 +483,9 @@ export default function Home() {
 
   // auto sign-in: pas connect, langsung trigger sign (gak ada card manual)
   useEffect(() => {
-    if (isConnected && !authed && address && !signBusy) {
+    if (isConnected && !authed && address && !signBusyRef.current) {
+      signBusyRef.current = true;
       (async () => {
-        setSignBusy(true);
         try {
           await (signMessageAsync as any)({ account: address as `0x${string}`, message: `FokusLe login\nWallet: ${address}\nSign to prove ownership.` });
           setAuthed(true);
@@ -493,11 +493,11 @@ export default function Home() {
           setToast({ text: "user cancelled sign in request", type: "error" });
           setTimeout(() => disconnect(), 1200);
         } finally {
-          setSignBusy(false);
+          signBusyRef.current = false;
         }
       })();
     }
-  }, [isConnected, authed, address, signMessageAsync, signBusy]);
+  }, [isConnected, authed, address, signMessageAsync]);
 
   const signIn = useCallback(async () => {
     if (!address) return;
