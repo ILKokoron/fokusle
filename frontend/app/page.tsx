@@ -95,6 +95,7 @@ export default function Home() {
   const { signMessageAsync } = useSignMessage();
 
   const [authed, setAuthed] = useState(false);
+  const [signBusy, setSignBusy] = useState(false); // guard auto sign-in loop on cancel
   const [prog, setProg] = useState<Progress | null>(null);
   const [badges, setBadges] = useState<number[]>([]);
   const [msg, setMsg] = useState("");
@@ -482,17 +483,21 @@ export default function Home() {
 
   // auto sign-in: pas connect, langsung trigger sign (gak ada card manual)
   useEffect(() => {
-    if (isConnected && !authed && address) {
+    if (isConnected && !authed && address && !signBusy) {
       (async () => {
+        setSignBusy(true);
         try {
           await (signMessageAsync as any)({ account: address as `0x${string}`, message: `FokusLe login\nWallet: ${address}\nSign to prove ownership.` });
           setAuthed(true);
         } catch {
-          // user rejected — biarkan di connect screen, bisa retry
+          setToast({ text: "user cancelled sign in request", type: "error" });
+          setTimeout(() => disconnect(), 1200);
+        } finally {
+          setSignBusy(false);
         }
       })();
     }
-  }, [isConnected, authed, address, signMessageAsync]);
+  }, [isConnected, authed, address, signMessageAsync, signBusy]);
 
   const signIn = useCallback(async () => {
     if (!address) return;
