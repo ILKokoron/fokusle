@@ -613,30 +613,22 @@ export default function Home() {
 
   const shareText = () => {
     if (!prog) return "";
-    return `LOCKED IN
+    // durasi human-readable dari state onchain (total atau weekly, sama per session)
+    const secs = Number(BigInt(prog.weeklySeconds) < BigInt(prog.totalSeconds) ? BigInt(prog.weeklySeconds) : BigInt(prog.totalSeconds));
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    const durLabel =
+      h > 0 ? `${h}h ${m}m` :
+      m > 0 ? `${m}m` :
+      `${Math.max(1, Math.floor(secs))}s`;
+    const streak = Number(prog.streak) as number;
+    return `started the session ${durLabel} ago. already can't quit the wallet's watching.
 
-Today
-${fmt(prog.weeklySeconds < prog.totalSeconds ? prog.weeklySeconds : prog.totalSeconds)}
+fokusle turns "i was focused" into "the chain says so". no token, no staking, no fake it till you make it. just you, the timer, and proof that doesn't lie.
 
-Weekly
-${fmt(prog.weeklySeconds)}
+streak: ${streak} day${streak > 1 ? "s" : ""} and counting.
 
-Current Streak
-${prog.streak} Days
-
-Focus Score
-${(() => {
-  const DAILY = 8n * 3600n;
-  const sc = fmtPct(BigInt(localSecondsForDay(address, 0)), DAILY);
-  const pv = fmtPct(BigInt(localSecondsForDay(address, 1)), DAILY);
-  const d = sc - pv;
-  return `${d > 0 ? "+" : d < 0 ? "-" : ""}${sc}%`;
-})()}
-
-Wallet
-${address?.slice(0, 6)}…${address?.slice(-4)}
-
-Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
+Proof Of Focus: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
   };
   const share = (platform: string) => {
     const text = shareText();
