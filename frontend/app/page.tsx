@@ -129,6 +129,7 @@ export default function Home() {
   const [running, setRunning] = useState(false);
   const [started, setStarted] = useState(false);
   const [elapsed, setElapsed] = useState(0); // stopwatch seconds, counts up after Lock in
+  const [displayPct, setDisplayPct] = useState(0); // animated count-up for ring %
   const [sessionStart, setSessionStart] = useState(0); // wall-clock ms when session started (proof of presence)
   const [logging, setLogging] = useState(false);
   const [lastTx, setLastTx] = useState<string | null>(null); // last onchain tx hash (for monadvision link)
@@ -430,6 +431,7 @@ export default function Home() {
   });
 
   const [leaderboard, setLeaderboard] = useState<{ addr: string; streak: number; name: string }[]>([]);
+  const [leaderboardLoading, setLeaderboardLoading] = useState(false);
   const [viewAddr, setViewAddr] = useState<string | null>(null); // clicked leaderboard user → modal
   const [viewData, setViewData] = useState<{ name: string; streak: number; xp: number; level: number; sessions: number; total: number } | null>(null);
   const [viewLoading, setViewLoading] = useState(false);
@@ -455,6 +457,7 @@ export default function Home() {
     if (!leaderboardAddrs || !publicClient || (leaderboardAddrs as string[]).length === 0) return;
     (async () => {
       const addrs = (leaderboardAddrs as `0x${string}`[]).slice(0, 20);
+      setLeaderboardLoading(true);
       try {
         const streaks = await publicClient.readContract({
           address: FOCUSPROOF_ADDRESS,
@@ -492,6 +495,8 @@ export default function Home() {
         setLeaderboard(rows);
       } catch {
         setLeaderboard([]);
+      } finally {
+        setLeaderboardLoading(false);
       }
     })();
   }, [leaderboardAddrs, publicClient]);
@@ -595,7 +600,7 @@ export default function Home() {
       setElapsed(0);
       setShowShare(true); // show share modal AFTER successful log
       addLocalSession(address, Number(focused));
-      setToast({ text: "Success", type: "ok" });
+      setToast({ text: "locked in. the chain knows now", type: "ok" });
     } catch (e: any) {
       setToast({ text: "❌ Failed", type: "error" });
     } finally {
@@ -680,6 +685,22 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
     : { bg: "rgba(110,84,255,0.08)", border: "rgba(110,84,255,0.35)", text: "#3a2f66" };
   const sessionPct = started ? Math.min(100, Math.round((elapsed / 3600) * 100)) : 0;
 
+  // smooth count-up for ring % (real-time as session runs)
+  useEffect(() => {
+    let raf = 0;
+    const start = performance.now();
+    const from = displayPct;
+    const to = sessionPct;
+    const dur = 600;
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / dur);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setDisplayPct(Math.round(from + (to - from) * eased));
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [sessionPct]);
   const S = {
     device: { width: 390, minHeight: 780, background: theme === "dark" ? "rgba(14,9,28,0.72)" : "rgba(247,245,255,0.85)", backdropFilter: "blur(14px)", color: T.text, borderRadius: 28, overflow: "hidden", margin: "20px auto", fontFamily: "var(--font-inter), -apple-system, sans-serif", position: "relative" as const, border: `1px solid ${T.border}`, boxShadow: "0 20px 60px rgba(0,0,0,0.45)" },
     screen: { padding: "16px 20px 90px", minHeight: 700 },
@@ -713,6 +734,7 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
         </div>
       ) : (
       <div style={S.device as any}>
+        <style>{`@keyframes pulse{0%{opacity:.4}50%{opacity:1}100%{opacity:.4}}`}</style>
         <div style={S.screen}>
           {!isConnected ? (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: 640, textAlign: "center", padding: "0 16px" }}>
@@ -769,11 +791,11 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
                         </defs>
                         <circle cx="100" cy="100" r="86" stroke="rgba(255,255,255,0.14)" strokeWidth="14" fill="none" />
                         <circle cx="100" cy="100" r="86" stroke="#ffffff" strokeWidth="14" fill="none"
-                          strokeDasharray={540} strokeDashoffset={540 - (540 * Math.min(sessionPct, 100)) / 100}
-                          strokeLinecap="round" transform="rotate(-90 100 100)" style={{ transition: "stroke-dashoffset 1s linear", filter: "drop-shadow(0 0 8px rgba(110,84,255,0.45))" }} />
+                          strokeDasharray={540} strokeDashoffset={540 - (540 * Math.min(displayPct, 100)) / 100}
+                          strokeLinecap="round" transform="rotate(-90 100 100)" style={{ transition: "stroke-dashoffset 0.6s cubic-bezier(0.22,1,0.36,1)", filter: "drop-shadow(0 0 8px rgba(110,84,255,0.45))" }} />
                       </svg>
                       <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", textAlign: "center", pointerEvents: "none" }}>
-                        <div style={{ fontSize: 30, fontWeight: 700, color: "#fff", fontFamily: "var(--font-mono), monospace" }}>{sessionPct}%</div>
+                        <div style={{ fontSize: 30, fontWeight: 700, color: "#fff", fontFamily: "var(--font-mono), monospace" }}>{displayPct}%</div>
                       </div>
                     </div>
                     {/* timer number BELOW the ring (separate, not overlapping) */}
@@ -809,7 +831,15 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
 
                   <div style={S.sectionTitle}><h3 style={S.sectionH3}>Top streaks</h3><span style={{ fontSize: 11, color: T.accent, fontWeight: 600, cursor: "pointer" }} onClick={() => setTab("progress")}>See all</span></div>
                   <div style={S.card}>
-                    {leaderboard.length === 0 ? (
+                    {leaderboardLoading ? (
+                      [0,1,2].map((i) => (
+                        <div key={i} style={{ ...S.feedItem, borderBottom: i === 2 ? "none" : S.feedItem.borderBottom }}>
+                          <div style={{ width: 34, height: 34, borderRadius: 999, background: "rgba(110,84,255,0.12)", animation: "pulse 1.2s ease-in-out infinite" }} />
+                          <div style={{ flex: 1, height: 12, borderRadius: 6, background: "rgba(110,84,255,0.12)", animation: "pulse 1.2s ease-in-out infinite" }} />
+                          <div style={{ width: 30, height: 18, borderRadius: 6, background: "rgba(110,84,255,0.12)", animation: "pulse 1.2s ease-in-out infinite" }} />
+                        </div>
+                      ))
+                    ) : leaderboard.length === 0 ? (
                       <div style={{ color: T.muted, fontSize: 12, textAlign: "center", padding: "8px 0" }}>No sessions logged yet on this contract.</div>
                     ) : (
                       leaderboard.slice(0, 3).map((row, i) => {
@@ -966,8 +996,10 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
 
                   <div style={S.sectionTitle}><h3 style={S.sectionH3}>Habit insights</h3></div>
                   <div style={S.card}>
-                    {!insights || insights.totalSessions === 0 ? (
-                      <div style={{ color: T.muted, fontSize: 12 }}>Log a few sessions to unlock insights.</div>
+                    {!insights ? (
+                      <div style={{ color: T.muted, fontSize: 12, fontStyle: "italic" }}>reading your signal from the chain…</div>
+                    ) : insights.totalSessions === 0 ? (
+                      <div style={{ color: T.muted, fontSize: 12.5, lineHeight: 1.5 }}>no sessions logged yet. open the timer, lock in, and the void starts keeping score.</div>
                     ) : (
                       <>
                         <div style={{ display: "flex", justifyContent: "space-between", padding: "9px 0", borderBottom: `1px solid ${T.border}`, fontSize: 13 }}><span style={{ color: T.muted }}>Most active time</span><span style={{ fontWeight: 600 }}>{insights.mostActivePeriod}</span></div>
