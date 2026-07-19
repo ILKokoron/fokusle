@@ -239,7 +239,7 @@ export default function Home() {
       const now = Math.floor(Date.now() / 1000);
       const todayStart = now - (now % 86400);
       const last7Days = [0, 0, 0, 0, 0, 0, 0]; // index 6 = today, 0 = 6 days ago
-      const last28Days = new Array(28).fill(0); // index 0 = today (top-left), 27 = 28d ago
+      const last28Days = new Array(28).fill(0); // matrix row*7+col, col0=Mon, index27 = today's weekday cell
 
       for (const s of sessions) {
         const d = new Date(s.ts * 1000);
@@ -252,7 +252,12 @@ export default function Home() {
 
         const daysAgo = Math.floor((todayStart - (s.ts - (s.ts % 86400))) / 86400);
         if (daysAgo >= 0 && daysAgo <= 6) last7Days[6 - daysAgo] += s.seconds;
-        if (daysAgo >= 0 && daysAgo <= 27) last28Days[daysAgo] += s.seconds;
+        if (daysAgo >= 0 && daysAgo <= 27) {
+          const dowMon = (d.getUTCDay() + 6) % 7; // Mon=0
+          const row = 3 - Math.floor((daysAgo + dowMon) / 7);
+          const idx = row * 7 + dowMon;
+          if (idx >= 0 && idx < 28) last28Days[idx] += s.seconds;
+        }
       }
 
       const periodLabels = ["Night (00–06)", "Morning (06–12)", "Afternoon (12–18)", "Evening (18–24)"];
@@ -821,22 +826,18 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
                     {insights?.last28Days ? (
                       <Fragment>
                         <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 5, marginBottom: 7 }}>
-                          {Array.from({ length: 7 }).map((_, col) => {
-                            const _now = Math.floor(Date.now() / 1000);
-                            const _todayStart = _now - (_now % 86400);
-                            const dt = new Date((_todayStart - col * 86400) * 1000);
-                            return (
-                              <div key={col} style={{ textAlign: "center", fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.6)" }}>{["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][dt.getUTCDay()]}</div>
-                            );
-                          })}
+                          {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
+                            <div key={d} style={{ textAlign: "center", fontSize: 12, fontWeight: 600, color: theme === "dark" ? "rgba(255,255,255,0.6)" : "rgba(58,47,102,0.75)" }}>{d}</div>
+                          ))}
                         </div>
                         <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 5 }}>
-                          {[...insights.last28Days].reverse().map((sec, i) => {
-                            // intensity: 1h = full level; 5 buckets. today = top-left (i=0)
+                          {insights.last28Days.map((sec, i) => {
                             const lvl = sec === 0 ? 0 : Math.min(4, 1 + Math.floor(Number(sec) / 900));
-                            const colors = ["#1c1436", "rgba(110,84,255,0.28)", "rgba(110,84,255,0.5)", "rgba(110,84,255,0.75)", "#8b7bff"];
+                            const darkColors = ["#1c1436", "rgba(110,84,255,0.28)", "rgba(110,84,255,0.5)", "rgba(110,84,255,0.75)", "#8b7bff"];
+                            const lightColors = ["#e6e1ff", "rgba(110,84,255,0.3)", "rgba(110,84,255,0.5)", "rgba(110,84,255,0.72)", "#6E54FF"];
+                            const colors = theme === "dark" ? darkColors : lightColors;
                             return (
-                              <div key={i} title={`${Math.floor(Number(sec) / 3600 * 10) / 10}h focused`} style={{ aspectRatio: "1 / 1", borderRadius: 4, background: colors[lvl], border: "1px solid rgba(110,84,255,0.15)" }} />
+                              <div key={i} title={`${Math.floor(Number(sec) / 3600 * 10) / 10}h focused`} style={{ aspectRatio: "1 / 1", borderRadius: 4, background: colors[lvl], border: `1px solid ${theme === "dark" ? "rgba(110,84,255,0.15)" : "rgba(110,84,255,0.3)"}` }} />
                             );
                           })}
                         </div>
