@@ -1127,7 +1127,10 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
             <div style={{ width: 260, background: T.card, border: `1px solid ${T.border}`, borderRadius: 18, padding: 18, textAlign: "center" }}>
               <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 6, fontFamily: "var(--font-grotesk), sans-serif" }}>Session locked in</div>
               <p style={{ color: T.muted, fontSize: 12, margin: "0 0 16px", lineHeight: 1.5 }}>Your flex card is ready. Share it or keep it.</p>
-              <button onClick={() => { share("x"); setShowShare(false); }} style={{ width: "100%", background: T.accent, color: "#fff", border: "none", padding: 12, borderRadius: 12, fontWeight: 700, fontSize: 14, cursor: "pointer", marginBottom: 8 }}>
+              <button onClick={() => { downloadCard(); }} style={{ width: "100%", background: T.accent, color: "#fff", border: "none", padding: 12, borderRadius: 12, fontWeight: 700, fontSize: 14, cursor: "pointer", marginBottom: 8 }}>
+                Download card
+              </button>
+              <button onClick={() => { window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText())}`, "_blank"); setShowShare(false); }} style={{ width: "100%", background: "transparent", color: T.text, border: `1px solid ${T.border}`, padding: 12, borderRadius: 12, fontWeight: 700, fontSize: 14, cursor: "pointer", marginBottom: 8 }}>
                 Share to X
               </button>
               <button onClick={() => setShowShare(false)} style={{ width: "100%", background: "transparent", color: T.muted, border: "none", padding: 10, fontSize: 13, cursor: "pointer" }}>
