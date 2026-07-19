@@ -882,8 +882,11 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
                             const darkColors = ["#1c1436", "rgba(110,84,255,0.28)", "rgba(110,84,255,0.5)", "rgba(110,84,255,0.75)", "#8b7bff"];
                             const lightColors = ["#e6e1ff", "rgba(110,84,255,0.3)", "rgba(110,84,255,0.5)", "rgba(110,84,255,0.72)", "#6E54FF"];
                             const colors = theme === "dark" ? darkColors : lightColors;
+                            const dayNum = i + 1; // top-left = 1, bottom-right = 28 (sequential)
                             return (
-                              <div key={i} title={`${Math.floor(Number(sec) / 3600 * 10) / 10}h focused`} style={{ aspectRatio: "1 / 1", borderRadius: 4, background: colors[lvl], border: `1px solid ${theme === "dark" ? "rgba(110,84,255,0.15)" : "rgba(110,84,255,0.3)"}` }} />
+                              <div key={i} title={`Day ${dayNum} — ${Math.floor(Number(sec) / 3600 * 10) / 10}h focused`} style={{ aspectRatio: "1 / 1", borderRadius: 4, background: colors[lvl], border: `1px solid ${theme === "dark" ? "rgba(110,84,255,0.15)" : "rgba(110,84,255,0.3)"}`, position: "relative", display: "flex", alignItems: "flex-start", justifyContent: "flex-start", padding: 3 }}>
+                                <span style={{ fontSize: 9, lineHeight: 1, color: lvl === 0 ? (theme === "dark" ? "rgba(255,255,255,0.35)" : "rgba(58,47,102,0.45)") : (theme === "dark" ? "rgba(255,255,255,0.85)" : "#fff"), fontWeight: 600 }}>{dayNum}</span>
+                              </div>
                             );
                           })}
                         </div>
