@@ -1130,7 +1130,12 @@ Verify onchain: https://testnet.monadvision.com/address/${FOCUSPROOF_ADDRESS}`;
               <button onClick={() => { downloadCard(); }} style={{ width: "100%", background: T.accent, color: "#fff", border: "none", padding: 12, borderRadius: 12, fontWeight: 700, fontSize: 14, cursor: "pointer", marginBottom: 8 }}>
                 Download card
               </button>
-              <button onClick={() => { window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText())}`, "_blank"); setShowShare(false); }} style={{ width: "100%", background: "transparent", color: T.text, border: `1px solid ${T.border}`, padding: 12, borderRadius: 12, fontWeight: 700, fontSize: 14, cursor: "pointer", marginBottom: 8 }}>
+              <button onClick={() => {
+                const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText())}`;
+                const w = window.open(url, "_blank");
+                if (!w) window.location.href = url;
+                setShowShare(false);
+              }} style={{ width: "100%", background: "transparent", color: T.text, border: `1px solid ${T.border}`, padding: 12, borderRadius: 12, fontWeight: 700, fontSize: 14, cursor: "pointer", marginBottom: 8 }}>
                 Share to X
               </button>
               <button onClick={() => setShowShare(false)} style={{ width: "100%", background: "transparent", color: T.muted, border: "none", padding: 10, fontSize: 13, cursor: "pointer" }}>
